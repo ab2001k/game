@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Omniverse: PC Master Edition</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎮</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Orbitron:wght@500;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
@@ -10,33 +11,38 @@
         --primary: #00f3ff; 
         --danger: #ff0044; 
         --warn: #ffcc00; 
-        --bg: #050505;
         --hud-bg: rgba(0, 10, 20, 0.9);
     }
     * { box-sizing: border-box; }
     
     body {
-        margin: 0; overflow: hidden; background: #111;
+        margin: 0; padding: 0;
+        overflow: hidden; background: #050505;
         font-family: 'Orbitron', sans-serif;
         display: flex; justify-content: center; align-items: center; 
-        height: 100vh;
+        height: 100vh; width: 100vw;
         user-select: none;
     }
 
-    /* GAME CONTAINER */
+    /* GAME CONTAINER - RESPONSIVE FIX */
     #game-container {
         position: relative; 
-        width: 1280px; height: 720px; 
+        width: 100%; max-width: 1280px;
+        aspect-ratio: 16/9;
         background: #000; 
-        box-shadow: 0 0 150px rgba(0, 243, 255, 0.15);
-        border: 4px solid #333;
+        box-shadow: 0 0 50px rgba(0, 243, 255, 0.2);
+        border: 2px solid #333;
     }
     
-    canvas { display: block; width: 100%; height: 100%; image-rendering: auto; }
+    /* Ensure canvas fills the container */
+    canvas { 
+        display: block; width: 100%; height: 100%; 
+        image-rendering: auto; 
+    }
 
     /* HUD */
     #ui-layer {
-        position: absolute; inset: 0; pointer-events: none; padding: 25px;
+        position: absolute; inset: 0; pointer-events: none; padding: 2%;
         display: flex; flex-direction: column; justify-content: space-between; z-index: 10;
     }
     .hud-top { display: flex; justify-content: space-between; width: 100%; align-items: flex-start; }
@@ -44,7 +50,7 @@
     .stat-panel {
         background: var(--hud-bg); 
         border: 1px solid rgba(255,255,255,0.15);
-        padding: 15px 20px; border-radius: 4px;
+        padding: 10px 20px; border-radius: 4px;
         box-shadow: 0 4px 20px rgba(0,0,0,0.5);
         min-width: 200px;
     }
@@ -64,6 +70,7 @@
         background: #333; color: #fff; text-decoration: none;
         padding: 8px 15px; font-size: 0.8rem; border: 1px solid #555;
         font-family: sans-serif; opacity: 0.5; transition: opacity 0.2s; z-index: 100;
+        border-radius: 4px;
     }
     #mobile-link:hover { opacity: 1; background: var(--primary); color: #000; }
 
@@ -74,7 +81,7 @@
         z-index: 100; text-align: center; backdrop-filter: blur(5px);
     }
     h1 {
-        font-family: 'Black Ops One'; font-size: 5rem; margin: 0;
+        font-family: 'Black Ops One'; font-size: clamp(3rem, 5vw, 5rem); margin: 0;
         background: linear-gradient(180deg, #fff, #555);
         -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         filter: drop-shadow(0 0 30px var(--primary)); letter-spacing: -2px;
@@ -190,31 +197,30 @@ class Particle {
 class BackMissile {
     constructor() {
         this.x = -50; this.y = GAME.player.y; 
-        this.w = 30; this.h = 10;
+        this.w = 40; this.h = 12;
         this.vx = 8; this.dead = false;
-        GAME.txts.push(new FloatingText(50, this.y, "⚠ WARNING", "#f00"));
+        GAME.txts.push(new FloatingText(100, this.y, "⚠ MISSILE INCOMING", "#f00"));
     }
     update() {
         this.x += this.vx;
-        // Tracking slightly
-        if(this.x < GAME.player.x) {
+        if(this.x < GAME.player.x) { // Mild Homing
             if(this.y < GAME.player.y) this.y += 0.5;
             if(this.y > GAME.player.y) this.y -= 0.5;
         }
-        GAME.spawnPart(this.x, this.y+5, '#f00', 2, 5, 0); // Engine trail
+        GAME.spawnPart(this.x, this.y+5, '#f00', 3, 5, 0); // Trail
         if(this.x > GAME.W + 50) this.dead = true;
         
         // Hit Player
         if(checkRect(this, GAME.player)) {
             GAME.player.hit(1);
             this.dead = true;
-            GAME.spawnPart(this.x, this.y, '#f00', 15, 20, 0);
+            GAME.spawnPart(this.x, this.y, '#f00', 20, 20, 0);
         }
     }
     draw(ctx) {
         ctx.fillStyle = "#fff"; ctx.fillRect(this.x, this.y, this.w, this.h);
-        ctx.fillStyle = "#f00"; ctx.fillRect(this.x+20, this.y, 5, this.h); // Warhead
-        ctx.fillStyle = "#555"; ctx.fillRect(this.x-5, this.y+2, 5, 6); // Exhaust
+        ctx.fillStyle = "#f00"; ctx.fillRect(this.x+30, this.y, 10, this.h); 
+        ctx.fillStyle = "#555"; ctx.fillRect(this.x-5, this.y+2, 5, 8); 
     }
     hit() { this.dead=true; GAME.score+=200; GAME.spawnPart(this.x,this.y,'#f00',20,30,0.5); AudioSys.play('boom'); }
 }
@@ -241,27 +247,23 @@ class Player {
         this.jumpCount=0; this.reloadTimer=0;
     }
     update() {
-        // Horizontal (Smooth)
-        if(Input.keys.Left) { this.vx = -6; this.walkCycle+=0.3; }
-        else if(Input.keys.Right) { this.vx = 6; this.walkCycle+=0.3; }
+        if(Input.keys.Left) { this.vx = -6; this.walkCycle+=0.4; }
+        else if(Input.keys.Right) { this.vx = 6; this.walkCycle+=0.4; }
         else { this.vx *= 0.8; this.walkCycle=0; }
         this.x = Math.max(0, Math.min(GAME.W-this.w, this.x+this.vx));
 
-        // Jetpack (Hold Up)
         if(Input.keys.Up && !this.grounded && this.fuel>0) {
             this.vy -= 0.8; this.fuel -= 1;
-            GAME.spawnPart(this.x+10, this.y+45, '#0ff', 4, 10, 0.5); // Flame
+            GAME.spawnPart(this.x+10, this.y+45, '#0ff', 4, 10, 0.5);
             if(GAME.frames%5===0) AudioSys.play('jet');
         } else if(this.grounded && this.fuel<100) this.fuel += 0.5;
 
-        // Physics
         this.vy += GAME.Gravity; this.y += this.vy;
         if(this.y+this.h > GAME.GroundY) {
             this.y = GAME.GroundY - this.h; this.vy = 0; 
             this.grounded = true; this.jumpCount=0;
         } else this.grounded = false;
 
-        // Auto Reload
         if(this.ammo < 12) {
             this.reloadTimer++;
             if(this.reloadTimer > 40) { this.ammo++; this.reloadTimer=0; }
@@ -298,25 +300,19 @@ class Player {
     draw(ctx) {
         if(this.invuln>0 && Math.floor(GAME.frames/4)%2) return;
         
-        // SMOOTH LEG ANIMATION (Sine Wave)
-        let legOffset = Math.sin(this.walkCycle) * 8;
-        ctx.fillStyle = '#888';
+        let legOffset = Math.sin(this.walkCycle) * 10;
+        ctx.fillStyle = '#bbb';
         if(this.grounded) {
-            ctx.fillRect(this.x+5 + legOffset, this.y+40, 10, 10); // L Leg
-            ctx.fillRect(this.x+25 - legOffset, this.y+40, 10, 10); // R Leg
+            ctx.fillRect(this.x+8 + legOffset, this.y+40, 8, 10); 
+            ctx.fillRect(this.x+24 - legOffset, this.y+40, 8, 10);
         } else {
-            // Hanging legs in air
             ctx.fillRect(this.x+8, this.y+40, 8, 8); 
             ctx.fillRect(this.x+24, this.y+45, 8, 8);
         }
 
-        // Body
         ctx.fillStyle = '#fff'; ctx.fillRect(this.x, this.y, this.w, this.h-10);
-        // Visor
         ctx.fillStyle = '#333'; ctx.fillRect(this.x+20, this.y+10, 20, 10);
-        // Jetpack
         ctx.fillStyle = '#555'; ctx.fillRect(this.x-5, this.y+10, 10, 30);
-        // Fuel Indicator
         ctx.fillStyle = this.fuel>20 ? '#0f0' : '#f00'; ctx.fillRect(this.x-2, this.y+15, 4, 4);
     }
 }
@@ -351,7 +347,7 @@ class Enemy {
     draw(ctx) {
         if(this.t==='dragon') {
             ctx.fillStyle='#900'; ctx.beginPath(); ctx.ellipse(this.x+50,this.y+30,50,25,0,0,Math.PI*2); ctx.fill();
-            ctx.fillStyle='#f00'; ctx.beginPath(); ctx.moveTo(this.x+50,this.y+10); ctx.lineTo(this.x+20,this.y-50); ctx.lineTo(this.x+80,this.y+10); ctx.fill();
+            ctx.fillStyle='#f00'; ctx.beginPath(); ctx.moveTo(this.x+50,this.y+10); ctx.lineTo(this.x+30,this.y-50); ctx.lineTo(this.x+90,this.y+10); ctx.fill();
             ctx.fillStyle='#000'; ctx.fillRect(this.x,this.y+20,10,10);
         } else if(this.t==='tnt') {
             ctx.fillStyle='#111'; ctx.beginPath(); ctx.arc(this.x+15,this.y+15,15,0,Math.PI*2); ctx.fill();
@@ -372,15 +368,12 @@ class FloatingText {
     draw(ctx) { ctx.globalAlpha=this.l/60; ctx.fillStyle=this.c; ctx.font="bold 20px Orbitron"; ctx.fillText(this.t,this.x,this.y); ctx.globalAlpha=1; }
 }
 
-/* ================= ENGINE ================= */
 const GAME = {
     cvs: document.getElementById('cvs'), ctx: document.getElementById('cvs').getContext('2d'),
     W: 1280, H: 720, GroundY: 640, Gravity: 0.6,
     active: false, frames: 0, score: 0, level: 1, shake: 0,
-    
     player: null, ents: [], bulls: [], parts: [], txts: [], 
     
-    // THEMES CONFIG
     themes: [
         {id:'Earth', sky:['#87CEEB','#E0F7FA'], ground:'#228B22', brandType:'sign'},
         {id:'Mars', sky:['#4a0e0e','#1a0505'], ground:'#8B4513', brandType:'rocket'},
@@ -388,8 +381,7 @@ const GAME = {
         {id:'Space', sky:['#000','#001'], ground:'#333', brandType:'ship'}
     ],
     themeIdx: 0,
-    bgLayer1: [], // Mountains/Distant
-    bgLayer2: [], // Trees/Closer
+    bgLayer1: [], bgLayer2: [],
 
     start: function() {
         this.cvs.width = this.W; this.cvs.height = this.H;
@@ -408,19 +400,14 @@ const GAME = {
     update: function() {
         this.frames++;
         
-        // Theme Cycle (20s @ 60fps = 1200)
         if(this.frames % 1200 === 0) {
             this.themeIdx = (this.themeIdx + 1) % 4;
             this.txts.push(new FloatingText(this.W/2-50, 200, "WARP: " + this.themes[this.themeIdx].id.toUpperCase(), "#fff"));
         }
-
-        // Background Gen
         if(this.frames % 200 === 0) this.bgLayer1.push({x:this.W, type:'mountain'}); 
         if(this.frames % 60 === 0) this.bgLayer2.push({x:this.W, type:'tree'});
-        // Branding Gen
         if(this.frames % 1200 === 100) this.bgLayer1.push({x:this.W, type:'brand'});
 
-        // Spawning
         if(this.frames % Math.max(40, 100-this.level*5) === 0) {
             let r=Math.random();
             if(r<0.15) this.ents.push(new Enemy('dragon'));
@@ -429,26 +416,24 @@ const GAME = {
             else this.ents.push(new Enemy('basic'));
         }
 
-        // Backside Missile Attack (Random chance)
-        if(this.frames % 500 === 250) {
+        if(this.frames % 600 === 300) {
             this.ents.push(new BackMissile());
         }
 
         this.player.update();
         
-        // Updates
         this.ents.forEach(e=>e.update()); this.ents=this.ents.filter(e=>!e.dead);
         this.bulls.forEach(b=>{
             b.update();
             if(b.o==='player') {
                 this.ents.forEach(e=>{ if(!b.dead && !e.dead && checkRect(b,e)) { b.dead=true; e.hit(); }});
+                this.ents.forEach(e=>{ if(!b.dead && e instanceof BackMissile && checkRect(b,e)) { b.dead=true; e.hit(); }});
             } else if (checkRect(b, GAME.player)) { b.dead=true; GAME.player.hit(1); }
         });
         this.bulls=this.bulls.filter(b=>!b.dead);
         this.parts.forEach(p=>p.update()); this.parts=this.parts.filter(p=>p.l>0);
         this.txts.forEach(t=>t.update()); this.txts=this.txts.filter(t=>t.l>0);
         
-        // BG Updates
         this.bgLayer1.forEach(b => b.x -= 0.5); this.bgLayer1 = this.bgLayer1.filter(b=>b.x > -500);
         this.bgLayer2.forEach(b => b.x -= 2);   this.bgLayer2 = this.bgLayer2.filter(b=>b.x > -200);
 
@@ -457,23 +442,18 @@ const GAME = {
 
     draw: function() {
         let t = this.themes[this.themeIdx];
-        
-        // Sky
         let g = this.ctx.createLinearGradient(0,0,0,this.H); g.addColorStop(0,t.sky[0]); g.addColorStop(1,t.sky[1]);
         this.ctx.fillStyle = g; this.ctx.fillRect(0,0,this.W,this.H);
 
-        // Shake
         this.ctx.save();
         if(this.shake>0.5) this.ctx.translate((Math.random()-.5)*this.shake, (Math.random()-.5)*this.shake);
 
-        // Mars Moons
         if(t.id==='Mars') {
             this.ctx.fillStyle = "rgba(200,50,50,0.4)";
             this.ctx.beginPath(); this.ctx.arc(this.W-200, 150, 40, 0, Math.PI*2); this.ctx.fill();
             this.ctx.beginPath(); this.ctx.arc(this.W-100, 250, 20, 0, Math.PI*2); this.ctx.fill();
         }
         
-        // Background Layer 1 (Blurred Mountains/Branding)
         this.ctx.filter = 'blur(2px)';
         this.bgLayer1.forEach(b => {
             if(b.type==='mountain') {
@@ -486,14 +466,12 @@ const GAME = {
         });
         this.ctx.filter = 'none';
 
-        // Background Layer 2 (Trees)
         this.bgLayer2.forEach(b => {
             this.ctx.fillStyle = "rgba(0,0,0,0.5)";
-            this.ctx.fillRect(b.x, this.GroundY-60, 20, 60); // Trunk
+            this.ctx.fillRect(b.x, this.GroundY-60, 20, 60); 
             this.ctx.beginPath(); this.ctx.arc(b.x+10, this.GroundY-80, 30, 0, Math.PI*2); this.ctx.fill();
         });
 
-        // Ground
         this.ctx.fillStyle = t.ground; this.ctx.fillRect(0, this.GroundY, this.W, this.H-this.GroundY);
         this.ctx.strokeStyle = "rgba(255,255,255,0.2)"; this.ctx.beginPath(); this.ctx.moveTo(0,this.GroundY); this.ctx.lineTo(this.W,this.GroundY); this.ctx.stroke();
 
