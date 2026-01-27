@@ -24,7 +24,7 @@
         user-select: none; touch-action: none;
     }
 
-    /* GAME CONTAINER - Aspect Ratio Lock */
+    /* GAME CONTAINER */
     #game-container {
         position: relative; 
         width: 100%; height: 100%; 
@@ -63,36 +63,38 @@
     .progress-track { width: 100%; height: 6px; background: #222; border: 1px solid #444; margin-top: 2px; border-radius: 2px; overflow: hidden; }
     .progress-fill { height: 100%; width: 100%; transition: width 0.1s linear; }
 
-    /* MOBILE CONTROLS - FIXED POSITIONING */
+    /* MOBILE CONTROLS - FIXED POSITIONING & Z-INDEX BOOST */
     #mobile-controls {
-        position: absolute; inset: 0; pointer-events: none; z-index: 20; display: none;
+        position: absolute; inset: 0; pointer-events: none; z-index: 50; display: none;
     }
     
     .control-cluster {
-        position: absolute; pointer-events: auto; display: flex; gap: 15px;
+        position: absolute; pointer-events: auto; display: flex; gap: 20px;
     }
-    .left-cluster { bottom: 30px; left: 30px; }
-    .right-cluster { bottom: 30px; right: 30px; align-items: flex-end; }
+    /* Moved up slightly to avoid bottom bezel overlap */
+    .left-cluster { bottom: 40px; left: 30px; }
+    .right-cluster { bottom: 40px; right: 30px; align-items: flex-end; }
 
     /* BUTTON STYLES */
     .btn {
-        width: 70px; height: 70px; border-radius: 50%;
+        width: 75px; height: 75px; border-radius: 50%;
         background: rgba(255, 255, 255, 0.1); 
-        border: 2px solid rgba(255,255,255,0.3);
-        color: white; font-size: 24px; 
+        border: 2px solid rgba(255,255,255,0.4);
+        color: white; font-size: 28px; 
         display: flex; justify-content: center; align-items: center;
-        backdrop-filter: blur(5px);
-        box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        backdrop-filter: blur(8px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.6);
         transition: transform 0.1s, background 0.1s;
+        touch-action: none;
     }
-    .btn:active { transform: scale(0.9); background: rgba(0, 243, 255, 0.2); border-color: var(--primary); }
+    .btn:active { transform: scale(0.9); background: rgba(0, 243, 255, 0.3); border-color: var(--primary); }
     
-    .btn-fire { border-color: var(--danger); color: var(--danger); width: 80px; height: 80px; margin-right: 10px; margin-bottom: 10px;}
-    .btn-jump { border-color: var(--primary); color: var(--primary); width: 90px; height: 90px; font-size: 30px; }
+    .btn-fire { border-color: var(--danger); color: var(--danger); width: 85px; height: 85px; margin-right: 15px; margin-bottom: 10px;}
+    .btn-jump { border-color: var(--primary); color: var(--primary); width: 95px; height: 95px; font-size: 36px; }
     .btn-up { 
-        position: absolute; bottom: 110px; right: 10px; 
-        width: 60px; height: 60px; border-color: #fff; color: #fff; 
-        background: rgba(255,255,255,0.15);
+        position: absolute; bottom: 120px; right: 10px; 
+        width: 65px; height: 65px; border-color: #fff; color: #fff; 
+        background: rgba(255,255,255,0.2);
     }
 
     /* MENUS */
@@ -175,8 +177,8 @@
             <p style="color:var(--primary); font-size: 0.9rem; letter-spacing: 4px; margin-bottom: 30px;">HARDCORE EDITION</p>
             
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:20px;">
-                <button class="start-btn" onclick="APP.start(false)">PLAY PC</button>
-                <button class="start-btn btn-mobile" onclick="APP.start(true)">PLAY MOBILE</button>
+                <button class="start-btn" onclick="GAME.start(false)">PLAY PC</button>
+                <button class="start-btn btn-mobile" onclick="GAME.start(true)">PLAY MOBILE</button>
             </div>
             <div style="color:#666; font-size: 0.8rem;">
                 CONTROLS: ARROWS + SPACE + F <br>
@@ -242,7 +244,7 @@ const Input = {
         // Mobile Bindings with Passive False for Chrome Fix
         this.bindTouch('btn-left', 'Left');
         this.bindTouch('btn-right', 'Right');
-        this.bindTouch('btn-up', 'Up'); // 3. Jetpack Hover Input
+        this.bindTouch('btn-up', 'Up'); // Jetpack Hover Input
         this.bindTouch('btn-jump', 'Jump');
         this.bindTouch('btn-fire', 'Fire');
     },
@@ -316,7 +318,7 @@ class Bullet {
         this.owner = owner; // 'player' or 'enemy'
         this.dead = false;
         
-        // 4. Backfire Rocket visuals
+        // Backfire Rocket visuals
         if(owner === 'enemy') { 
             this.w = 20; this.h = 10; 
             AudioSys.playTone('rocket');
@@ -365,7 +367,7 @@ class Player {
         this.x += this.vx;
         this.x = Math.max(0, Math.min(GAME.W - this.w, this.x));
         
-        // 2. JETPACK PHYSICS (Hovering)
+        // JETPACK PHYSICS (Hovering)
         // If holding UP and has fuel, apply upward force
         if(Input.keys.Up && this.fuel > 0) {
             this.vy -= 0.8; // Thrust
@@ -391,7 +393,7 @@ class Player {
             this.grounded = false;
         }
         
-        // 3. AUTO RELOAD
+        // AUTO RELOAD
         if(this.ammo < this.maxAmmo) {
             this.reloadTimer++;
             if(this.reloadTimer > 45) { // ~0.75 seconds
@@ -470,29 +472,29 @@ class Enemy {
         this.hp = 1;
         this.timer = 0;
         
-        // 1. & 4. & 5. ENEMY TYPES CONFIG
+        // ENEMY TYPES CONFIG
         switch(type) {
-            case 'dragon': // 1. Red Dragon (Boss-like)
+            case 'dragon': // Red Dragon (Boss-like)
                 this.y = 50 + Math.random() * 200;
                 this.w = 100; this.h = 60;
                 this.hp = 6; // Double power/Health
                 this.vx = -4;
                 break;
                 
-            case 'traitor': // 4. Backfire enemy
+            case 'traitor': // Backfire enemy
                 this.y = GAME.GroundY - 50;
                 this.w = 40; this.h = 50;
                 this.hp = 2;
                 this.hasFired = false;
                 break;
                 
-            case 'ufo': // 5. Vertical Aliens
+            case 'ufo': // Vertical Aliens
                 this.y = 100;
                 this.w = 50; this.h = 30;
                 this.baseY = this.y;
                 break;
                 
-            case 'tnt': // 5. TNT Bombs
+            case 'tnt': // TNT Bombs
                 this.y = GAME.GroundY - 30;
                 this.w = 30; this.h = 30;
                 this.vx = -7; // Fast
@@ -519,7 +521,7 @@ class Enemy {
             if(this.timer % 100 === 0) { /* Alien Shoot logic could go here */ }
         }
         else if (this.type === 'traitor') {
-            // 4. Backfire Logic: Fire rocket when player is in range
+            // Backfire Logic: Fire rocket when player is in range
             if(!this.hasFired && this.x < GAME.W - 100) {
                 GAME.bullets.push(new Bullet(this.x, this.y + 20, -10, 'enemy'));
                 this.hasFired = true;
