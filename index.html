@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Omniverse: Director's Cut</title>
+<title>Omniverse: Definitive Edition</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎮</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Orbitron:wght@500;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
@@ -86,13 +86,12 @@
         padding: 40px; background: rgba(0, 20, 20, 0.8);
         width: 100%; max-width: 700px;
     }
-    
-    .lvl-select { display: flex; gap: 10px; justify-content: center; margin: 20px 0; }
+    .lvl-select { display: flex; gap: 10px; justify-content: center; margin: 20px 0; flex-wrap: wrap; }
     .lvl-btn {
         background: rgba(0,0,0,0.5); border: 1px solid #555; color: #888;
         padding: 10px 20px; cursor: pointer; font-family: 'Orbitron'; transition: 0.2s;
     }
-    .lvl-btn.active { background: var(--primary); color: #000; box-shadow: 0 0 15px var(--primary); transform: scale(1.1); }
+    .lvl-btn.active { background: var(--primary); color: #000; box-shadow: 0 0 15px var(--primary); transform: scale(1.1); border-color: #fff;}
 
     .start-btn {
         display: inline-block; padding: 20px 60px; font-family: 'Orbitron'; font-size: 1.5rem; font-weight: 900;
@@ -114,7 +113,6 @@
 
 <div id="game-container">
     <a href="game.html" id="mobile-link">SWITCH TO MOBILE 📱</a>
-    
     <canvas id="cvs" width="1280" height="720"></canvas>
 
     <div id="ui-layer">
@@ -139,10 +137,9 @@
     <div id="menu-overlay">
         <div class="menu-panel">
             <h1>OMNIVERSE</h1>
-            <p style="color:var(--primary); font-size: 1.2rem; letter-spacing: 6px; font-weight:bold;">PC MASTER EDITION</p>
+            <p style="color:var(--primary); font-size: 1.2rem; letter-spacing: 6px; font-weight:bold;">DEFINITIVE EDITION</p>
             
-            <div class="lvl-select" id="lvl-container">
-                </div>
+            <div class="lvl-select" id="lvl-container"></div>
 
             <button class="start-btn" onclick="GAME.start()">INITIALIZE SYSTEM</button>
             <div style="font-size:0.8rem; margin-top:10px; color:#666;">PRESS [SPACE] TO START</div>
@@ -209,14 +206,15 @@ class Particle {
 
 class BackMissile {
     constructor(yPos) {
-        this.x = -100; this.y = yPos; 
+        this.x = -80; this.y = yPos; 
         this.w = 40; this.h = 12;
-        this.vx = 8 + (GAME.level*0.5); this.dead = false;
-        GAME.txts.push(new FloatingText(150, this.y, "⚠ BACK ATTACK", "#f00"));
+        this.vx = 9 + (GAME.level*0.5); this.dead = false;
+        GAME.txts.push(new FloatingText(150, this.y, "⚠ INCOMING!", "#f00"));
         AudioSys.play('shoot'); 
     }
     update() {
         this.x += this.vx;
+        // Homing Logic
         if(this.x < GAME.player.x) { 
             if(this.y < GAME.player.y) this.y += 1.5;
             if(this.y > GAME.player.y) this.y -= 1.5;
@@ -333,16 +331,17 @@ class Enemy {
         if(t==='dragon') { this.w=100; this.h=60; this.hp=2; }
         else if(t==='ufo') { this.w=60; this.h=30; this.hp=2; }
         else if(t==='tnt') { this.y=GAME.GroundY-30; this.w=30; this.h=30; }
-        else if(t==='traitor') { this.y=GAME.GroundY-50; this.h=50; this.hp=2; this.fired=false; }
+        else if(t==='traitor') { this.y=GAME.GroundY-60; this.h=50; this.hp=2; this.fired=false; }
         else this.y=GAME.GroundY-40;
     }
     update() {
         this.x -= (3 + GAME.level * 0.8); this.tm++;
         
-        // BACKSIDE MISSILE
-        if(this.t==='traitor' && this.x < -50 && !this.fired) {
+        // TRAITOR LAUNCHES MISSILE WHEN LEAVING SCREEN
+        if(this.t==='traitor' && this.x < -10 && !this.fired) {
             this.fired = true;
             GAME.ents.push(new BackMissile(this.y + 10));
+            GAME.spawnPart(this.x+40, this.y+10, '#fff', 5, 20, 0); // Launch puff
         }
 
         if(this.t==='dragon' || this.t==='ufo') {
@@ -361,17 +360,23 @@ class Enemy {
     hit() {
         this.hp--; 
         if(this.hp > 0) {
-            this.y += 30; // Knockback
-            AudioSys.play('jump'); GAME.spawnPart(this.x+20,this.y+20,'#fff',3,5,0);
+            this.y += 30; AudioSys.play('jump'); GAME.spawnPart(this.x+20,this.y+20,'#fff',3,5,0);
         } else {
             this.dead=true; GAME.score += (this.t==='dragon'?500:100);
             
-            // BURST DAMAGE FOR TRAITOR
+            // TRAITOR EXPLOSION & PROXIMITY DAMAGE
             if(this.t === 'traitor') {
-                let dist = Math.hypot((this.x+this.w/2)-(GAME.player.x+GAME.player.w/2), (this.y+this.h/2)-(GAME.player.y+GAME.player.h/2));
-                if(dist < 180) {
+                // Violent Explosion Ring
+                for(let i=0; i<20; i++) GAME.spawnPart(this.x+20, this.y+25, '#ff0', 8, 30, 0);
+                
+                // Check Distance to Player
+                let dx = (this.x+this.w/2) - (GAME.player.x+GAME.player.w/2);
+                let dy = (this.y+this.h/2) - (GAME.player.y+GAME.player.h/2);
+                let dist = Math.sqrt(dx*dx + dy*dy);
+                
+                if(dist < 200) {
                     GAME.player.hit(1);
-                    GAME.txts.push(new FloatingText(this.x, this.y-50, "BLAST DAMAGE!", "#f00"));
+                    GAME.txts.push(new FloatingText(GAME.player.x, GAME.player.y-50, "BLAST HIT!", "#f00"));
                 }
             }
 
@@ -381,14 +386,20 @@ class Enemy {
     }
     draw(ctx) {
         if(this.t==='dragon') {
-            let wingY = Math.sin(this.tm * 0.3) * 25;
-            ctx.fillStyle='#900'; 
-            ctx.beginPath(); ctx.ellipse(this.x+50, this.y+30, 50, 20, 0, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.moveTo(this.x+20, this.y+30); ctx.quadraticCurveTo(this.x, this.y+10, this.x-10, this.y+20); 
-            ctx.lineWidth=10; ctx.strokeStyle='#900'; ctx.stroke(); ctx.lineWidth=1;
-            ctx.fillStyle='#f00'; ctx.beginPath(); ctx.moveTo(this.x+50,this.y+10); 
-            ctx.lineTo(this.x+50, this.y-30+wingY); 
-            ctx.lineTo(this.x+90,this.y+10); ctx.fill();
+            // REDESIGNED DRAGON: Serpent body with distinct wings
+            let s = Math.sin(this.tm*0.2) * 5;
+            let wingY = Math.sin(this.tm*0.3) * 30;
+            ctx.fillStyle = '#8B0000'; // Dark Red Body
+            // Segmented Body
+            for(let i=0; i<3; i++) {
+                ctx.beginPath(); ctx.arc(this.x + 80 - (i*30), this.y + 30 + (i%2==0?s:-s), 20, 0, Math.PI*2); ctx.fill();
+            }
+            // Head
+            ctx.fillStyle = '#FF0000'; // Bright Red Head
+            ctx.beginPath(); ctx.moveTo(this.x, this.y+30); ctx.lineTo(this.x+30, this.y+10); ctx.lineTo(this.x+30, this.y+50); ctx.fill();
+            // Wing
+            ctx.fillStyle = '#D00'; 
+            ctx.beginPath(); ctx.moveTo(this.x+50, this.y+20); ctx.lineTo(this.x+50, this.y-40+wingY); ctx.lineTo(this.x+90, this.y+20); ctx.fill();
         } else if(this.t==='tnt') {
             ctx.fillStyle='#111'; ctx.beginPath(); ctx.arc(this.x+15,this.y+15,15,0,Math.PI*2); ctx.fill();
             ctx.fillStyle='#f00'; ctx.font="bold 10px Arial"; ctx.fillText("TNT", this.x+4, this.y+18);
@@ -396,8 +407,12 @@ class Enemy {
             ctx.fillStyle='#0f0'; ctx.beginPath(); ctx.arc(this.x+30,this.y+10,15,Math.PI,0); ctx.fill();
             ctx.fillStyle='#555'; ctx.beginPath(); ctx.ellipse(this.x+30,this.y+15,30,8,0,0,Math.PI*2); ctx.fill();
         } else if(this.t==='traitor') {
-            ctx.fillStyle='#444'; ctx.fillRect(this.x,this.y,this.w,this.h);
-            ctx.fillStyle='#ff0'; ctx.fillRect(this.x+10,this.y+10,20,20);
+            // LAUNCHER TANK VISUAL
+            ctx.fillStyle='#333'; ctx.fillRect(this.x,this.y+10,this.w,40); // Base
+            ctx.fillStyle='#555'; ctx.beginPath(); ctx.arc(this.x+20, this.y+10, 20, Math.PI, 0); ctx.fill(); // Dome
+            // Missile Rack
+            ctx.fillStyle= this.fired ? '#000' : '#f00'; 
+            ctx.fillRect(this.x+5, this.y-10, 10, 20); ctx.fillRect(this.x+25, this.y-10, 10, 20);
         } else {
             ctx.fillStyle='#c0c'; ctx.fillRect(this.x, this.y, this.w, this.h);
         }
