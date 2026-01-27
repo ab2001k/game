@@ -1,405 +1,430 @@
-<!-- FULL GAME CODE -->
-<!-- Omniverse Universal Edition - Fixed & Enhanced -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Omniverse: Universal Edition</title>
-
+<title>Omniverse: Final Version</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌌</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Orbitron:wght@500;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
-
 <style>
-:root { 
---primary:#00f3ff; 
---danger:#ff0044; 
---warn:#ffcc00; 
---glass:rgba(255,255,255,0.08);
-}
+    :root { --primary: #00f3ff; --danger: #ff0044; --warn: #ffcc00; }
+    body {
+        margin: 0; overflow: hidden; background: #000;
+        font-family: 'Orbitron', sans-serif;
+        display: flex; justify-content: center; align-items: center; height: 100vh;
+        user-select: none; -webkit-user-select: none; touch-action: none;
+    }
+    #game-wrap {
+        position: relative; width: 100vw; height: 100vh; max-width: 1024px; max-height: 576px;
+        box-shadow: 0 0 50px rgba(0, 243, 255, 0.2); border: 2px solid #333;
+        background: #000; overflow: hidden;
+    }
+    canvas { display: block; width: 100%; height: 100%; image-rendering: auto; }
+    
+    /* UI / HUD */
+    #ui-layer {
+        position: absolute; inset: 0; pointer-events: none; padding: 20px;
+        color: white; display: flex; flex-direction: column; justify-content: space-between; z-index: 5;
+    }
+    .hud-top { display: flex; justify-content: space-between; align-items: flex-start; }
+    .stat-panel { 
+        background: rgba(0,0,0,0.7); padding: 10px 15px; 
+        border-radius: 8px; border: 1px solid #444; backdrop-filter: blur(5px);
+    }
+    .hearts { color: var(--danger); letter-spacing: 3px; font-size: 1.2rem; text-shadow: 0 0 10px var(--danger); }
+    .bar-container { width: 120px; height: 8px; background: #222; border: 1px solid #555; position: relative; overflow: hidden; margin-top: 5px; border-radius: 4px;}
+    .bar-fill { height: 100%; transition: width 0.1s linear; }
 
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
-body{
-margin:0;overflow:hidden;background:#000;
-font-family:'Orbitron',sans-serif;
-touch-action:none;
-}
+    /* OVERLAYS */
+    #overlay {
+        position: absolute; inset: 0; background: rgba(0,0,0,0.95);
+        display: flex; flex-direction: column; justify-content: center; align-items: center;
+        text-align: center; pointer-events: auto; z-index: 50; transition: opacity 0.3s;
+    }
+    h1 { 
+        font-family: 'Black Ops One'; font-size: clamp(2.5rem, 10vw, 4rem); 
+        background: linear-gradient(to bottom, #fff, var(--primary)); 
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        margin: 0; filter: drop-shadow(0 0 20px rgba(0,243,255,0.5));
+    }
+    .level-selector { display: flex; gap: 10px; margin: 20px 0; }
+    .lvl-btn {
+        background: rgba(255,255,255,0.1); border: 1px solid #555; color: #fff;
+        padding: 10px 18px; font-family: 'Orbitron'; font-weight: bold; cursor: pointer;
+    }
+    .lvl-btn.selected { background: var(--primary); color: #000; box-shadow: 0 0 15px var(--primary); border-color: #fff; }
 
-/* Canvas */
-#game-wrap{position:fixed;inset:0;background:#000}
-canvas{width:100%;height:100%;display:block}
+    .btn-group { display: flex; gap: 20px; margin-top: 25px; }
+    .start-btn {
+        padding: 18px 35px; font-size: 1.3rem;
+        background: var(--danger); border: none; color: white; font-family: 'Black Ops One';
+        cursor: pointer; clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%);
+    }
+    .mobile-btn { background: var(--warn); color: black; }
 
-/* HUD */
-#ui-layer{
-position:absolute;inset:0;z-index:5;
-pointer-events:none;padding:15px;
-display:flex;flex-direction:column;justify-content:space-between;
-}
-.stat-panel{
-background:rgba(0,0,0,0.55);
-backdrop-filter:blur(6px);
-border:1px solid rgba(255,255,255,0.15);
-border-radius:8px;color:#fff;
-padding:10px 15px;
-box-shadow:0 0 15px rgba(0,255,255,0.15);
-}
-.hud-top{display:flex;justify-content:space-between}
+    /* MOBILE INPUTS */
+    #mobile-controls {
+        position: absolute; inset: 0; pointer-events: none; z-index: 40; display: none;
+    }
+    .touch-area { position: absolute; pointer-events: auto; display: flex; gap: 20px; }
+    .left-controls { left: 30px; bottom: 40px; }
+    .right-controls { right: 30px; bottom: 30px; flex-direction: column; align-items: center; gap: 10px; }
+    
+    .t-btn {
+        width: 80px; height: 80px; border-radius: 50%;
+        background: rgba(255, 255, 255, 0.1); border: 2px solid rgba(255,255,255,0.3);
+        color: white; font-size: 32px; display: flex; justify-content: center; align-items: center;
+        backdrop-filter: blur(8px); touch-action: none;
+    }
+    .t-btn:active { background: rgba(0, 243, 255, 0.4); transform: scale(0.9); border-color: var(--primary); }
+    .fire-btn { border-color: var(--danger); color: var(--danger); width: 70px; height: 70px; }
+    .jump-btn { border-color: var(--primary); color: var(--primary); width: 95px; height: 95px; font-size: 40px; }
+    .up-btn { border-color: #fff; height: 60px; width: 60px; font-size: 24px; }
 
-/* Bars */
-.bar-bg{width:130px;height:8px;background:#222;border-radius:4px;overflow:hidden;margin-top:4px}
-.bar-fill{height:100%;transition:.15s}
+    .hidden { opacity: 0; pointer-events: none !important; }
 
-/* Overlay Screen */
-#overlay{
-position:absolute;inset:0;z-index:50;
-display:flex;align-items:center;justify-content:center;
-background:linear-gradient(120deg,rgba(0,255,255,0.15),rgba(255,0,255,0.15),rgba(255,255,0,0.1));
-backdrop-filter:blur(10px);
-animation:bgFlow 6s linear infinite;
-}
-@keyframes bgFlow{
-0%{filter:hue-rotate(0deg)}
-100%{filter:hue-rotate(360deg)}
-}
-
-.overlay-box{
-background:rgba(0,0,0,0.65);
-border:2px solid rgba(0,255,255,0.4);
-box-shadow:0 0 40px rgba(0,255,255,0.4);
-padding:40px 50px;border-radius:20px;
-text-align:center;
-animation:glowPulse 2s infinite alternate;
-}
-@keyframes glowPulse{
-0%{box-shadow:0 0 20px rgba(0,255,255,0.3)}
-100%{box-shadow:0 0 45px rgba(255,0,255,0.5)}
-}
-
-h1{
-font-family:'Black Ops One';
-font-size:3.5rem;color:#fff;margin:0;
-text-shadow:0 0 25px var(--primary);
-}
-p{color:#aaa;letter-spacing:2px}
-
-/* Buttons */
-.level-row{display:flex;gap:10px;justify-content:center;margin:20px 0}
-.lvl-btn{
-background:transparent;border:1px solid #666;
-color:#aaa;padding:10px 18px;
-cursor:pointer;border-radius:6px;
-}
-.lvl-btn.selected{
-background:var(--primary);color:#000;
-box-shadow:0 0 15px var(--primary);
-}
-
-.start-btn{
-margin:10px;padding:14px 45px;
-font-family:'Black Ops One';font-size:1.3rem;
-background:linear-gradient(45deg,#ff0044,#ff9900);
-border:none;color:#fff;border-radius:10px;
-cursor:pointer;box-shadow:0 0 25px rgba(255,0,0,0.4);
-transition:.2s;
-}
-.start-btn:hover{transform:scale(1.08)}
-.mobile-btn{background:linear-gradient(45deg,#00f3ff,#00ff99)}
-
-.hidden{display:none}
-
-/* Mobile Controls */
-#mobile-controls{
-position:absolute;inset:0;z-index:20;display:none;
-}
-#touch-shield{position:absolute;inset:0}
-.control-zone{
-position:absolute;bottom:30px;display:flex;gap:18px;
-}
-.zone-left{left:25px}
-.zone-right{right:25px;flex-direction:column;align-items:flex-end}
-.t-btn{
-width:85px;height:85px;border-radius:50%;
-background:rgba(255,255,255,0.1);
-border:2px solid rgba(255,255,255,0.4);
-color:white;font-size:30px;
-display:flex;align-items:center;justify-content:center;
-backdrop-filter:blur(6px);
-box-shadow:0 0 15px rgba(0,0,0,0.6);
-}
-.t-btn:active{background:rgba(0,243,255,0.5)}
-.btn-jump{width:95px;height:95px;border-color:var(--primary)}
-.btn-fire{width:75px;height:75px;border-color:var(--danger)}
+    @media (orientation: portrait) {
+        #game-wrap::after {
+            content: "ROTATE FOR BETTER VIEW ⟳";
+            position: absolute; inset: 0; background: #000; z-index: 100;
+            display: flex; justify-content: center; align-items: center; color: var(--primary);
+        }
+    }
 </style>
 </head>
-
 <body>
 
 <div id="game-wrap">
-<canvas id="gameCanvas"></canvas>
+    <canvas id="gameCanvas"></canvas>
 
-<div id="ui-layer">
-<div class="hud-top">
-<div class="stat-panel">
-<div id="hp-disp">❤❤❤</div>
-<div>SCORE: <span id="sc-disp" style="color:var(--primary)">0</span></div>
-</div>
-<div class="stat-panel">
-<div style="font-size:10px">PLASMA</div>
-<div class="bar-bg"><div id="ammo-fill" class="bar-fill" style="background:var(--warn);width:100%"></div></div>
-<div style="font-size:10px;margin-top:6px">FUEL</div>
-<div class="bar-bg"><div id="fuel-fill" class="bar-fill" style="background:var(--primary);width:100%"></div></div>
-</div>
-</div>
-</div>
+    <div id="ui-layer">
+        <div class="hud-top">
+            <div class="stat-panel">
+                <div class="hearts" id="hp-disp">❤❤❤</div>
+                <div style="font-weight:900;">SCORE: <span id="sc-disp" style="color:var(--primary)">0</span></div>
+            </div>
+            <div class="stat-panel" style="text-align: right;">
+                <div style="font-size:0.7rem; color:#aaa">PLASMA</div>
+                <div class="bar-container"><div id="ammo-fill" class="bar-fill" style="background:var(--warn)"></div></div>
+                <div style="font-size:0.7rem; color:#aaa">FUEL / JET</div>
+                <div class="bar-container"><div id="fuel-fill" class="bar-fill" style="background:var(--primary)"></div></div>
+            </div>
+        </div>
+    </div>
 
-<!-- MOBILE -->
-<div id="mobile-controls">
-<div id="touch-shield"></div>
-<div class="control-zone zone-left">
-<div class="t-btn" id="btn-left">←</div>
-<div class="t-btn" id="btn-right">→</div>
-</div>
-<div class="control-zone zone-right">
-<div class="t-btn btn-fire" id="btn-fire">🔥</div>
-<div class="t-btn btn-jump" id="btn-jump">🚀</div>
-</div>
-</div>
+    <div id="mobile-controls">
+        <div class="touch-area left-controls">
+            <div class="t-btn" id="btn-left">←</div>
+            <div class="t-btn" id="btn-right">→</div>
+        </div>
+        <div class="touch-area right-controls">
+            <div class="t-btn up-btn" id="btn-up">↑</div>
+            <div class="t-btn fire-btn" id="btn-fire">🔥</div>
+            <div class="t-btn jump-btn" id="btn-jump">🚀</div>
+        </div>
+    </div>
 
-<!-- OVERLAY -->
-<div id="overlay">
-<div class="overlay-box">
-<h1 id="titleText">OMNIVERSE</h1>
-<p>UNIVERSAL EDITION</p>
+    <div id="overlay">
+        <div style="padding: 20px; border: 1px solid var(--primary); background: rgba(0,0,0,0.5);">
+            <h1>OMNIVERSE</h1>
+            <p style="color:var(--primary); letter-spacing:6px; font-weight:bold; margin-top:5px;">ABHIK DUTTA EDITION</p>
+        </div>
+        
+        <div class="level-selector">
+            <button class="lvl-btn" onclick="selectLevel(1)">LVL 1</button>
+            <button class="lvl-btn" onclick="selectLevel(2)">LVL 2</button>
+            <button class="lvl-btn selected" onclick="selectLevel(3)">LVL 3</button>
+            <button class="lvl-btn" onclick="selectLevel(4)">LVL 4</button>
+            <button class="lvl-btn" onclick="selectLevel(5)">LVL 5</button>
+        </div>
 
-<div class="level-row">
-<button class="lvl-btn" onclick="setLevel(1)">1</button>
-<button class="lvl-btn" onclick="setLevel(2)">2</button>
-<button class="lvl-btn selected" onclick="setLevel(3)">3</button>
-<button class="lvl-btn" onclick="setLevel(4)">4</button>
-<button class="lvl-btn" onclick="setLevel(5)">5</button>
-</div>
-
-<button class="start-btn" onclick="startGame(false)">PLAY PC</button>
-<button class="start-btn mobile-btn" onclick="startGame(true)">MOBILE</button>
-
-<div style="margin-top:15px;font-size:12px;color:#aaa">
-PC: Arrows + Space + F<br>
-Mobile: Touch Controls (Landscape)
-</div>
-</div>
-</div>
-
+        <div class="btn-group">
+            <button class="start-btn" onclick="initGame(false)">PLAY PC</button>
+            <button class="start-btn mobile-btn" onclick="initGame(true)">PLAY MOBILE</button>
+        </div>
+    </div>
 </div>
 
 <script>
-/* ========= FIXED GAME ENGINE ========= */
-
-const c=document.getElementById("gameCanvas");
-const ctx=c.getContext("2d");
-function resize(){c.width=innerWidth;c.height=innerHeight;}
-addEventListener("resize",resize);resize();
-
-let GRAVITY=0.6;
-let GROUND_Y=()=>c.height-80;
-
-let game={run:false,paused:false,frame:0,score:0,level:3,speed:6,ents:[],bullets:[],parts:[],bg:[],mobile:false};
-let startLvl=3;
-let input={l:false,r:false,u:false};
-
-class Player{
-constructor(){
-this.x=80;this.y=GROUND_Y()-40;
-this.w=40;this.h=40;
-this.dy=0;this.hp=3;
-this.fuel=100;this.ammo=10;
-this.ground=true;this.jumps=0;
-this.inv=0;this.leg=0;
+/** AUDIO ENGINE */
+class SoundFX {
+    constructor() { this.ctx = null; this.enabled = false; }
+    init() { 
+        if(!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        if(this.ctx.state === 'suspended') this.ctx.resume();
+        this.enabled = true;
+    }
+    play(type) {
+        if(!this.enabled) return;
+        const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
+        osc.connect(gain); gain.connect(this.ctx.destination);
+        const now = this.ctx.currentTime;
+        if(type === 'shoot') {
+            osc.type = 'square'; osc.frequency.setValueAtTime(800, now); osc.frequency.exponentialRampToValueAtTime(100, now + 0.1);
+            gain.gain.setValueAtTime(0.05, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+            osc.start(now); osc.stop(now + 0.1);
+        } else if(type === 'jump') {
+            osc.frequency.setValueAtTime(200, now); osc.frequency.linearRampToValueAtTime(400, now + 0.1);
+            gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+            osc.start(now); osc.stop(now + 0.1);
+        } else if(type === 'hit') {
+            osc.type = 'sawtooth'; osc.frequency.setValueAtTime(100, now); osc.frequency.linearRampToValueAtTime(10, now + 0.2);
+            gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+            osc.start(now); osc.stop(now + 0.2);
+        }
+    }
 }
-upd(){
-if(input.l) this.x=Math.max(0,this.x-5);
-if(input.r) this.x=Math.min(c.width/2,this.x+5);
+const sfx = new SoundFX();
 
-if(input.u && !this.ground && this.fuel>0){
-this.dy-=0.8;this.fuel-=0.8;
-}
+/** CORE ENGINE */
+const cvs = document.getElementById('gameCanvas');
+const ctx = cvs.getContext('2d');
+const W = 1024, H = 576;
+cvs.width = W; cvs.height = H;
 
-this.dy+=GRAVITY;this.y+=this.dy;
+const GRAVITY = 0.6;
+const GROUND_Y = H - 80;
+const JUMP_FORCE = -13;
+const THEME_DURATION = 1500;
 
-if(this.y+this.h>=GROUND_Y()){
-this.y=GROUND_Y()-this.h;this.dy=0;
-this.ground=true;this.jumps=0;
-this.fuel=Math.min(100,this.fuel+1.5);
-}else this.ground=false;
+const THEMES = [
+    { id: "earth", sky: ["#87CEEB", "#E0F7FA"], ground: "#228B22", color: "#333", bannerType: "hollywood" },
+    { id: "mars", sky: ["#4a0e0e", "#1a0505"], ground: "#8B4513", color: "#00ffcc", bannerType: "rocket_banner" },
+    { id: "matrix", sky: ["#000", "#002200"], ground: "#004400", color: "#fff", bannerType: "glitch" },
+    { id: "neon", sky: ["#2c003e", "#000"], ground: "#ff00ff", color: "#ffff00", bannerType: "billboard" }
+];
 
-if(this.ammo<10 && game.frame%60==0) this.ammo++;
+let game = {
+    active: false, paused: false, frame: 0, score: 0, level: 3, speed: 6,
+    themeIdx: 0, themeTimer: 0, bannerSpawned: false,
+    entities: [], bullets: [], particles: [], bgLayers: [],
+    isMobile: false
+};
 
-if(this.inv>0) this.inv--;
+let player, animId = null;
+let keys = {left:false, right:false, up:false};
 
-document.getElementById("fuel-fill").style.width=this.fuel+"%";
-document.getElementById("ammo-fill").style.width=(this.ammo*10)+"%";
-}
-
-jump(){
-if(this.ground){
-this.dy=-12;this.ground=false;this.jumps=1;
-}else if(this.jumps<2){
-this.dy=-11;this.jumps++;
-}
-}
-
-drw(){
-if(this.inv>0 && Math.floor(game.frame/5)%2) return;
-ctx.save();ctx.translate(this.x,this.y);
-
-this.leg=this.ground?this.leg+0.3:0.5;
-
-/* glow */
-ctx.shadowColor="#00f3ff";ctx.shadowBlur=15;
-
-/* legs */
-ctx.fillStyle="#777";
-ctx.fillRect(8,40,8,15+Math.sin(this.leg)*10);
-ctx.fillRect(24,40,8,15+Math.sin(this.leg+Math.PI)*10);
-
-/* body */
-ctx.shadowBlur=20;
-ctx.fillStyle="#fff";
-ctx.fillRect(0,0,40,40);
-
-/* visor */
-ctx.shadowBlur=0;
-ctx.fillStyle="#0ff";
-ctx.fillRect(18,10,18,8);
-
-ctx.restore();
+function selectLevel(n) {
+    game.level = n;
+    document.querySelectorAll('.lvl-btn').forEach((b, i) => b.classList.toggle('selected', i+1 === n));
 }
 
-hit(d){
-if(this.inv>0)return;
-this.hp-=d;this.inv=60;
-document.getElementById("hp-disp").innerText="❤".repeat(this.hp);
-if(this.hp<=0) gameOver();
-}
-}
-
-let player=new Player();
-
-/* Simple particles */
-function spawnPart(x,y,n,c){
-for(let i=0;i<n;i++){
-game.parts.push({
-x,y,c,
-vx:(Math.random()-.5)*4,
-vy:(Math.random()-.5)*4,
-life:1
-});
-}
-}
-
-function loop(){
-if(!game.run||game.paused) return;
-requestAnimationFrame(loop);
-game.frame++;game.score++;
-document.getElementById("sc-disp").innerText=game.score;
-
-/* background */
-let g=ctx.createLinearGradient(0,0,0,c.height);
-g.addColorStop(0,"#050015");
-g.addColorStop(1,"#000");
-ctx.fillStyle=g;ctx.fillRect(0,0,c.width,c.height);
-
-/* ground */
-ctx.fillStyle="#111";
-ctx.fillRect(0,GROUND_Y(),c.width,c.height);
-
-/* player */
-player.upd();player.drw();
-
-/* bullets */
-game.bullets.forEach((b,i)=>{
-b.x+=b.vx;
-ctx.shadowColor="#0ff";ctx.shadowBlur=15;
-ctx.fillStyle="#0ff";
-ctx.fillRect(b.x,b.y,10,4);
-ctx.shadowBlur=0;
-
-if(b.x>c.width) game.bullets.splice(i,1);
-});
-
-/* particles */
-game.parts.forEach((p,i)=>{
-p.x+=p.vx;p.y+=p.vy;p.life-=0.04;
-ctx.globalAlpha=p.life;ctx.fillStyle=p.c;
-ctx.fillRect(p.x,p.y,4,4);ctx.globalAlpha=1;
-if(p.life<=0) game.parts.splice(i,1);
-});
-}
-
-function startGame(mob){
-game.mobile=mob;
-player=new Player();
-game.run=true;game.paused=false;
-game.score=0;game.frame=0;
-game.bullets=[];game.parts=[];
-document.getElementById("overlay").classList.add("hidden");
-document.getElementById("mobile-controls").style.display=mob?"block":"none";
-document.getElementById("hp-disp").innerText="❤❤❤";
-loop();
+class ParallaxObject {
+    constructor(layerId, type, x, y) {
+        this.layerId = layerId; this.type = type; this.x = x; this.y = y; this.dead = false;
+        this.scale = 0.5 + Math.random();
+        this.speedMod = layerId === 0 ? 0.05 : (layerId === 1 ? 0.2 : 0.8);
+    }
+    update() { 
+        this.x -= game.speed * this.speedMod; 
+        if(this.type === "moon_big" || this.type === "moon_small") {
+            this.y += Math.sin(game.frame * 0.005) * 0.1;
+        }
+        if(this.x < -600) this.dead = true; 
+    }
+    draw(ctx, theme) {
+        if(this.type === "banner_abhik") { this.drawBanner(theme); return; }
+        
+        ctx.save();
+        if(theme.id === "earth") {
+            if(this.type === "cloud") {
+                ctx.fillStyle = "rgba(255,255,255,0.7)";
+                ctx.beginPath(); ctx.arc(this.x, this.y, 30*this.scale, 0, Math.PI*2); ctx.fill();
+                ctx.arc(this.x+30, this.y-10, 40*this.scale, 0, Math.PI*2); ctx.fill();
+            } else if(this.type === "mountain") {
+                ctx.fillStyle = "#3d4e3d"; ctx.beginPath(); ctx.moveTo(this.x, GROUND_Y); 
+                ctx.lineTo(this.x + 150*this.scale, GROUND_Y - 200*this.scale);
+                ctx.lineTo(this.x + 300*this.scale, GROUND_Y); ctx.fill();
+            }
+        } else if (theme.id === "mars") {
+            // MARS MOONS FEATURE
+            if(this.type === "moon_big" || this.type === "moon_small") {
+                let size = this.type === "moon_big" ? 45 : 20;
+                ctx.translate(this.x, this.y);
+                ctx.fillStyle = this.type === "moon_big" ? "#a89080" : "#7d6b5f";
+                ctx.beginPath(); ctx.arc(0,0, size, 0, Math.PI*2); ctx.fill();
+                // White patches / Craters
+                ctx.fillStyle = "rgba(255,255,255,0.2)";
+                ctx.beginPath(); ctx.arc(-size*0.3, -size*0.2, size*0.2, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(size*0.4, size*0.1, size*0.15, 0, Math.PI*2); ctx.fill();
+            }
+        } else if (theme.id === "matrix") {
+            ctx.fillStyle = "#0f0"; ctx.font = (16*this.scale)+"px monospace";
+            ctx.fillText(Math.random() > 0.5 ? "1" : "0", this.x, this.y);
+        } else if (theme.id === "neon") {
+            ctx.shadowBlur = 15; ctx.shadowColor = "#ff00ff";
+            ctx.fillStyle = "#1a0033"; ctx.fillRect(this.x, this.y, 40, H-this.y);
+            ctx.fillStyle = "#00f3ff"; ctx.fillRect(this.x+10, this.y+10, 5, 5);
+        }
+        ctx.restore();
+    }
+    drawBanner(theme) {
+        ctx.save(); ctx.translate(this.x, this.y);
+        if(theme.bannerType === "hollywood") {
+            ctx.fillStyle = "#fff"; ctx.font = "bold 45px Arial"; ctx.shadowColor = "#000"; ctx.shadowBlur = 5;
+            ctx.fillText("ABHIK DUTTA", 0, 0);
+        } else if (theme.bannerType === "glitch") {
+            ctx.font = "bold 40px 'Share Tech Mono'"; ctx.fillStyle = game.frame%4===0 ? "#fff" : "#0f0";
+            ctx.fillText("SYSTEM: ABHIK_DUTTA", (Math.random()-0.5)*10, 0);
+        } else if (theme.bannerType === "billboard") {
+            ctx.fillStyle = "#000"; ctx.fillRect(0,-40,300,70); ctx.strokeStyle = "#00f3ff"; ctx.lineWidth=3;
+            ctx.strokeRect(0,-40,300,70); ctx.fillStyle = "#ff00ff"; ctx.font = "900 32px Orbitron";
+            ctx.fillText("ABHIK DUTTA", 25, 10);
+        } else {
+            ctx.fillStyle = "#f00"; ctx.beginPath(); ctx.moveTo(-20,0); ctx.lineTo(-40,-10); ctx.lineTo(-40,10); ctx.fill();
+            ctx.fillStyle = "#fff"; ctx.fillRect(0,-15,200,30); ctx.fillStyle="#000"; ctx.font="bold 18px Arial"; ctx.fillText("ABHIK DUTTA", 20, 7);
+        }
+        ctx.restore();
+    }
 }
 
-function gameOver(){
-game.run=false;
-document.getElementById("titleText").innerText="GAME OVER";
-document.getElementById("overlay").classList.remove("hidden");
-document.getElementById("mobile-controls").style.display="none";
+class Player {
+    constructor() {
+        this.w=40; this.h=40; this.x=100; this.y=GROUND_Y-40; this.dy=0; this.hp=3; this.fuel=100; this.ammo=10;
+        this.grounded=true; this.jumpCount=0; this.invuln=0; this.legIdx = 0;
+    }
+    update() {
+        if(keys.left && this.x>10) this.x-=6;
+        if(keys.right && this.x<W/2) this.x+=6;
+        if(keys.up && this.fuel > 0) { 
+            this.dy -= 0.85; this.fuel -= 1.5; 
+            spawnPart(this.x+10, this.y+40, 2, '#00f3ff'); 
+            this.grounded = false;
+        }
+        this.dy += GRAVITY; this.y += this.dy;
+        if(this.y + this.h > GROUND_Y) { 
+            this.y = GROUND_Y - this.h; this.dy = 0; 
+            this.grounded = true; this.jumpCount = 0; 
+            if(this.fuel < 100) this.fuel += 1.5; 
+        }
+        if(this.invuln > 0) this.invuln--;
+        this.legIdx += 0.2;
+        document.getElementById('fuel-fill').style.width = this.fuel + "%";
+        document.getElementById('ammo-fill').style.width = (this.ammo * 10) + "%";
+    }
+    jump() {
+        if(this.grounded || this.jumpCount < 2) { 
+            this.dy = JUMP_FORCE; this.jumpCount++; 
+            this.grounded = false; sfx.play('jump'); 
+        }
+    }
+    draw() {
+        if(this.invuln > 0 && game.frame % 4 < 2) return;
+        ctx.save(); ctx.translate(this.x, this.y);
+        ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, 40, 40); // Body
+        ctx.fillStyle = "#333"; ctx.fillRect(25, 10, 15, 10); // Visor
+        // Legs
+        ctx.fillStyle = "#555"; 
+        let ly = this.grounded ? Math.sin(this.legIdx)*5 : 5;
+        ctx.fillRect(5, 40, 10, 5+ly); ctx.fillRect(25, 40, 10, 5-ly);
+        ctx.restore();
+    }
 }
 
-/* Controls */
-function fire(){
-if(game.run && player.ammo>0){
-player.ammo--;
-game.bullets.push({x:player.x+45,y:player.y+22,vx:12});
-spawnPart(player.x+45,player.y+22,6,"#0ff");
-}
-}
-function jump(){if(game.run) player.jump();}
-
-onkeydown=e=>{
-if(e.code==="ArrowLeft") input.l=true;
-if(e.code==="ArrowRight") input.r=true;
-if(e.code==="Space"){e.preventDefault();input.u=true;jump();}
-if(e.code==="KeyF") fire();
-if(e.code==="KeyP"){game.paused=!game.paused;if(!game.paused)loop();}
-}
-onkeyup=e=>{
-if(e.code==="ArrowLeft") input.l=false;
-if(e.code==="ArrowRight") input.r=false;
-if(e.code==="Space") input.u=false;
+class Enemy {
+    constructor(type, x, y) {
+        this.type=type; this.x=x; this.y=y; this.w=40; this.h=40; this.dead=false;
+        this.sinVal = Math.random() * 10;
+    }
+    update() { 
+        this.x -= game.speed; 
+        if(this.type === 'drone') this.y += Math.sin(game.frame * 0.1 + this.sinVal) * 2;
+        if(this.x < -100) this.dead = true; 
+    }
+    draw() {
+        ctx.fillStyle = this.type === 'drone' ? varColor('--danger') : varColor('--warn');
+        ctx.fillRect(this.x, this.y, this.w, this.h);
+        ctx.fillStyle = "#000"; ctx.globalAlpha = 0.3; ctx.fillRect(this.x, this.y+20, 40, 20); ctx.globalAlpha = 1;
+    }
 }
 
-/* Mobile */
-const map={ "btn-left":"l","btn-right":"r","btn-jump":"u","btn-fire":"f" };
-Object.keys(map).forEach(id=>{
-let el=document.getElementById(id);
-el.addEventListener("touchstart",e=>{
-e.preventDefault();
-if(map[id]==="f") fire();
-else if(map[id]==="u") jump();
-else input[map[id]]=true;
-},{passive:false});
-el.addEventListener("touchend",e=>{
-e.preventDefault();
-if(map[id]!=="f") input[map[id]]=false;
-},{passive:false});
-});
+function varColor(name) { return getComputedStyle(document.documentElement).getPropertyValue(name); }
+function spawnPart(x, y, n, c) { for(let i=0;i<n;i++) game.particles.push({x:x, y:y, c:c, vx:(Math.random()-.5)*6, vy:(Math.random()-.5)*6, life:1}); }
 
-/* Level */
-function setLevel(n){
-startLvl=n;
-document.querySelectorAll(".lvl-btn").forEach((b,i)=>{
-b.classList.toggle("selected",i+1===n);
-});
+function updateGame() {
+    if(++game.themeTimer > THEME_DURATION) { game.themeTimer=0; game.themeIdx=(game.themeIdx+1)%THEMES.length; game.bannerSpawned=false; }
+    if(!game.bannerSpawned && game.themeTimer === 300) { game.bgLayers.push(new ParallaxObject(1, "banner_abhik", W+50, 200)); game.bannerSpawned=true; }
+    
+    let r = Math.random();
+    let curT = THEMES[game.themeIdx].id;
+
+    if(curT === 'earth') {
+        if(r < 0.02) game.bgLayers.push(new ParallaxObject(1, "mountain", W, 0));
+        if(r < 0.01) game.bgLayers.push(new ParallaxObject(0, "cloud", W, 100));
+    } else if (curT === 'mars' && game.frame % 400 === 0) {
+        game.bgLayers.push(new ParallaxObject(0, "moon_big", W, 80));
+        game.bgLayers.push(new ParallaxObject(0, "moon_small", W+200, 150));
+    }
+
+    if(game.frame % (80 - game.level*5) === 0) {
+        game.entities.push(new Enemy(Math.random()>0.5?'goon':'drone', W, GROUND_Y-40 - Math.random()*100));
+    }
 }
+
+function draw() {
+    let t = THEMES[game.themeIdx];
+    let g = ctx.createLinearGradient(0,0,0,H); g.addColorStop(0, t.sky[0]); g.addColorStop(1, t.sky[1]);
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+    
+    game.bgLayers.forEach((o,i) => { o.update(); o.draw(ctx,t); if(o.dead)game.bgLayers.splice(i,1); });
+    ctx.fillStyle=t.ground; ctx.fillRect(0,GROUND_Y,W,H-GROUND_Y);
+    
+    player.update(); player.draw();
+
+    game.bullets.forEach((b,i) => {
+        b.x += 14; ctx.fillStyle=varColor('--primary'); ctx.fillRect(b.x, b.y, 15, 4);
+        game.entities.forEach(e => { if(b.x>e.x && b.x<e.x+e.w && b.y>e.y && b.y<e.y+e.h) { e.dead=true; b.dead=true; game.score+=100; sfx.play('hit'); spawnPart(e.x, e.y, 10, '#f00'); }});
+        if(b.x > W) b.dead = true; if(b.dead) game.bullets.splice(i,1);
+    });
+
+    game.entities.forEach((e,i) => {
+        e.update(); e.draw();
+        if(player.x<e.x+e.w-5 && player.x+player.w>e.x+5 && player.y<e.y+e.h-5 && player.y+player.h>e.y+5) { 
+            if(player.invuln <= 0) { player.hp--; player.invuln=60; updateHearts(); sfx.play('hit'); }
+            e.dead = true; 
+        }
+        if(e.dead) game.entities.splice(i,1);
+    });
+
+    game.particles.forEach((p,i)=>{ p.x+=p.vx; p.y+=p.vy; p.life-=0.02; ctx.globalAlpha=p.life; ctx.fillStyle=p.c; ctx.fillRect(p.x,p.y,3,3); if(p.life<=0)game.particles.splice(i,1); });
+    ctx.globalAlpha = 1;
+    if(player.hp <= 0) gameOver();
+}
+
+function updateHearts() { document.getElementById('hp-disp').innerText = "❤".repeat(Math.max(0, player.hp)); }
+
+function loop() { if(!game.active||game.paused)return; animId=requestAnimationFrame(loop); game.frame++; game.score++; document.getElementById('sc-disp').innerText=game.score; updateGame(); draw(); }
+
+function initGame(m) {
+    sfx.init(); game.isMobile = m;
+    document.getElementById('mobile-controls').style.display = m ? 'block' : 'none';
+    document.getElementById('overlay').classList.add('hidden');
+    game.active=true; game.paused=false; game.score=0; game.frame=0; game.themeIdx=0;
+    game.entities=[]; game.bullets=[]; game.bgLayers=[]; player = new Player();
+    updateHearts(); loop();
+}
+
+function gameOver() { game.active=false; document.querySelector('#overlay h1').innerText="GAME OVER"; document.getElementById('overlay').classList.remove('hidden'); }
+
+// INPUTS
+const fire = () => { if(player.ammo > 0 && game.active) { player.ammo--; game.bullets.push({x:player.x+40, y:player.y+15, dead:false}); sfx.play('shoot'); }};
+
+window.onkeydown = e => {
+    if(e.code==='ArrowLeft') keys.left=true; if(e.code==='ArrowRight') keys.right=true;
+    if(e.code==='Space' || e.code==='ArrowUp') player.jump();
+    if(e.code==='KeyF') fire();
+};
+window.onkeyup = e => { if(e.code==='ArrowLeft') keys.left=false; if(e.code==='ArrowRight') keys.right=false; };
+
+const bind = (id, k, isAction=false) => {
+    const el = document.getElementById(id);
+    el.addEventListener('touchstart', (e) => { e.preventDefault(); if(isAction) k(); else keys[k]=true; }, {passive:false});
+    el.addEventListener('touchend', (e) => { e.preventDefault(); if(!isAction) keys[k]=false; }, {passive:false});
+};
+bind('btn-left', 'left'); bind('btn-right', 'right'); bind('btn-up', 'up');
+bind('btn-jump', () => player.jump(), true);
+bind('btn-fire', () => fire(), true);
+
 </script>
-
 </body>
 </html>
