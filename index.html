@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Omniverse: Abhik's Final Cut</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚀</text></svg>">
+<title>Omniverse: Final Version</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌌</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Orbitron:wght@500;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
     :root { --primary: #00f3ff; --danger: #ff0044; --warn: #ffcc00; }
@@ -21,7 +21,7 @@
     }
     canvas { display: block; width: 100%; height: 100%; }
     
-    /* HUD */
+    /* UI ELEMENTS */
     #ui-layer {
         position: absolute; inset: 0; pointer-events: none; padding: 20px;
         color: white; display: flex; flex-direction: column; justify-content: space-between; z-index: 5;
@@ -62,7 +62,7 @@
     }
     .mobile-btn { background: var(--warn); color: black; }
 
-    /* MOBILE CONTROLS (Landscape Optimized) */
+    /* MOBILE CONTROLS */
     #mobile-controls {
         position: absolute; bottom: 0; left: 0; width: 100%; height: 100%;
         pointer-events: none; z-index: 15; display: none;
@@ -81,12 +81,10 @@
         backdrop-filter: blur(5px); box-shadow: 0 4px 10px rgba(0,0,0,0.5);
     }
     .t-btn:active { background: rgba(0, 243, 255, 0.3); border-color: var(--primary); transform: scale(0.95); }
-    
     .fire-btn { border-color: var(--danger); color: var(--danger); width: 70px; height: 70px; margin-right: 10px; margin-bottom: 20px;}
     .jump-btn { border-color: var(--primary); color: var(--primary); width: 90px; height: 90px; }
 
     .hidden { opacity: 0; pointer-events: none; }
-    
     @media (orientation: portrait) {
         #mobile-controls::before {
             content: "ROTATE DEVICE ⟳";
@@ -130,7 +128,7 @@
 
     <div id="overlay">
         <h1>OMNIVERSE</h1>
-        <p style="color:var(--primary); letter-spacing:4px; font-weight:bold;">ABHIK'S FINAL CUT</p>
+        <p style="color:var(--primary); letter-spacing:4px; font-weight:bold;">ABHIK'S EDITION</p>
         
         <div class="level-selector">
             <button class="lvl-btn" onclick="selectLevel(1)">LVL 1</button>
@@ -183,7 +181,7 @@ class SoundFX {
 }
 const sfx = new SoundFX();
 
-/** ENGINE CONSTANTS */
+/** ENGINE */
 const cvs = document.getElementById('gameCanvas');
 const ctx = cvs.getContext('2d');
 const W = 1024, H = 576;
@@ -192,6 +190,8 @@ cvs.width = W; cvs.height = H;
 const GRAVITY = 0.6;
 const GROUND_Y = H - 80;
 const JUMP_FORCE = -12;
+const THEME_DURATION = 1200; // ~20 Seconds at 60fps
+
 const THEMES = [
     { id: "earth", sky: ["#87CEEB", "#E0F7FA"], ground: "#228B22", color: "#333", hazardChance: 0, bannerType: "hollywood" },
     { id: "mars", sky: ["#5D0000", "#200000"], ground: "#8B4513", color: "#00ffcc", hazardChance: 0, bannerType: "rocket_banner" },
@@ -216,12 +216,12 @@ function selectLevel(n) {
     document.activeElement.blur();
 }
 
-/** PARALLAX OBJECT (Decor + Banners) */
+/** PARALLAX OBJECT */
 class ParallaxObject {
     constructor(layerId, type, x, y) {
         this.layerId = layerId; this.type = type; this.x = x; this.y = y; this.dead = false;
         this.scale = 0.5 + Math.random();
-        // Layer Speeds: 0=Far, 1=Mid, 2=Near
+        // 0=Far(Sky), 1=Mid(Horizon), 2=Near
         if(layerId === 0) this.speedMod = 0.05; else if(layerId === 1) this.speedMod = 0.2; else this.speedMod = 0.8; 
     }
     update() { this.x -= game.speed * this.speedMod; if(this.x < -600) this.dead = true; }
@@ -235,33 +235,27 @@ class ParallaxObject {
                 ctx.beginPath(); ctx.arc(this.x+25, this.y-10, 40*this.scale, 0, Math.PI*2); ctx.fill();
                 ctx.beginPath(); ctx.arc(this.x+50, this.y, 30*this.scale, 0, Math.PI*2); ctx.fill();
             } else if(this.type === "mountain") {
+                // FIXED: MOUNTAINS EXTEND TO H (Screen Bottom) TO PREVENT FLOATING
                 let h = 150 * this.scale; let w = 300 * this.scale;
-                
-                // Draw Big Triangle
                 ctx.fillStyle = "#2d3e2d"; 
                 ctx.beginPath(); 
-                ctx.moveTo(this.x, H); // Start way below ground to anchor it
+                ctx.moveTo(this.x, H); // Anchor Deep
                 ctx.lineTo(this.x, GROUND_Y); 
-                ctx.lineTo(this.x + w/2, GROUND_Y - h); 
+                ctx.lineTo(this.x + w/2, GROUND_Y - h); // Peak
                 ctx.lineTo(this.x + w, GROUND_Y); 
-                ctx.lineTo(this.x + w, H);
+                ctx.lineTo(this.x + w, H); // Anchor Deep
                 ctx.fill();
-
-                // Snow Cap
+                
                 ctx.fillStyle = "#fff"; ctx.beginPath(); 
                 ctx.moveTo(this.x+w/2-20*this.scale, GROUND_Y-h+30*this.scale); ctx.lineTo(this.x+w/2, GROUND_Y-h);
                 ctx.lineTo(this.x+w/2+20*this.scale, GROUND_Y-h+30*this.scale); ctx.fill();
             }
         } else if (theme.id === "mars") {
-             if(this.type === "planet") {
-                ctx.fillStyle = "rgba(255, 100, 100, 0.4)"; ctx.beginPath(); ctx.arc(this.x, this.y, 40*this.scale, 0, Math.PI*2); ctx.fill();
-             } else if(this.type === "phobos" || this.type === "deimos") {
-                 // Lumpy Asteroid Moon
-                 ctx.fillStyle = "#8a7b7b"; 
-                 ctx.beginPath();
-                 let size = (this.type === "phobos") ? 15 : 8;
-                 size *= this.scale;
-                 ctx.arc(this.x, this.y, size, 0, Math.PI*2);
+             // NO CLOUDS HERE - ONLY MOONS
+             if(this.type === "phobos" || this.type === "deimos") {
+                 ctx.fillStyle = "#8a7b7b"; ctx.beginPath(); 
+                 let size = (this.type==="phobos")?15:8; size*=this.scale;
+                 ctx.arc(this.x, this.y, size, 0, Math.PI*2); 
                  ctx.arc(this.x+size/2, this.y+size/2, size/2, 0, Math.PI*2);
                  ctx.fill();
              }
@@ -270,7 +264,7 @@ class ParallaxObject {
              ctx.fillText(Math.random()>.5?"1":"0", this.x, this.y);
         } else if (theme.id === "neon") {
              if(this.type === "building") {
-                 ctx.fillStyle = "#110022"; ctx.fillRect(this.x, this.y, 50*this.scale, GROUND_Y - this.y);
+                 ctx.fillStyle = "#110022"; ctx.fillRect(this.x, this.y, 50*this.scale, H - this.y);
                  ctx.fillStyle = Math.random()>.8 ? "#ff00de" : "#1a0033"; ctx.fillRect(this.x+10, this.y+10, 5, 5);
              } else if (this.type === "flying_car") {
                  ctx.fillStyle = "#00f3ff"; ctx.fillRect(this.x, this.y, 30, 10);
@@ -281,13 +275,19 @@ class ParallaxObject {
     drawBanner(theme) {
         ctx.save(); ctx.translate(this.x, this.y);
         if(theme.bannerType === "hollywood") {
-            ctx.fillStyle = "#2e3b2e"; ctx.beginPath(); ctx.moveTo(-50, 100); ctx.lineTo(150, -50); ctx.lineTo(350, 100); ctx.fill();
+            // GROUNDED HILL
+            ctx.fillStyle = "#2e3b2e"; 
+            ctx.beginPath(); 
+            ctx.moveTo(-100, H); // Deep anchor
+            ctx.lineTo(-50, 100); ctx.lineTo(150, -50); ctx.lineTo(350, 100); 
+            ctx.lineTo(450, H); // Deep anchor
+            ctx.fill();
+
             ctx.fillStyle = "#fff"; ctx.shadowColor = "#000"; ctx.shadowBlur = 4; ctx.font = "900 40px Arial"; 
             let txt = "ABHIK DUTTA"; for(let i=0; i<txt.length; i++) ctx.fillText(txt[i], i*25, Math.sin(i)*5);
             ctx.globalAlpha=0.5; ctx.fillStyle="#000"; ctx.fillRect(10,0,5,50); ctx.fillRect(250,0,5,50);
         } 
         else if (theme.bannerType === "rocket_banner") {
-            // Rocket FRONT
             ctx.fillStyle="#f00"; ctx.beginPath(); ctx.moveTo(-60,-10); ctx.lineTo(-90,0); ctx.lineTo(-60,10); ctx.fill(); 
             ctx.fillStyle="#ccc"; ctx.beginPath(); ctx.ellipse(-40, 0, 30, 10, 0, 0, Math.PI*2); ctx.fill();
             ctx.strokeStyle="#fff"; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(-10,0); ctx.lineTo(10,0); ctx.stroke();
@@ -354,16 +354,10 @@ class Enemy {
     }
     update() {
         let currentSpeed = game.speed * 0.6;
-        
         if(this.type === 'dragon') {
-            if(this.hp === 1) { // Damaged
-                currentSpeed = game.speed * 0.3; this.y += 2; 
-                if(game.frame % 10 === 0) spawnPart(this.x+30, this.y+20, 1, '#555', -1, -1);
-            } else { // Normal
-                if(Math.abs(this.y - this.targetY) < 10) {
-                    if(Math.random() < 0.6) this.targetY = GROUND_Y - this.h;
-                    else this.targetY = 50 + Math.random() * 100;
-                }
+            if(this.hp === 1) { currentSpeed = game.speed * 0.3; this.y += 2; if(game.frame % 10 === 0) spawnPart(this.x+30, this.y+20, 1, '#555', -1, -1);
+            } else { 
+                if(Math.abs(this.y - this.targetY) < 10) { if(Math.random() < 0.6) this.targetY = GROUND_Y - this.h; else this.targetY = 50 + Math.random() * 100; }
                 if(this.y < this.targetY) this.y += 2; else this.y -= 2;
             }
         } 
@@ -371,11 +365,8 @@ class Enemy {
             if(Math.abs(this.y - this.targetY) < 10) this.targetY = 50 + Math.random() * (GROUND_Y - 50 - this.h);
             if(this.y < this.targetY) this.y += 1.5; else this.y -= 1.5;
         }
-
         this.x -= currentSpeed; this.anim += 0.1;
-        if(this.y + this.h > GROUND_Y) this.y = GROUND_Y - this.h;
-        if(this.y < 20) this.y = 20;
-
+        if(this.y + this.h > GROUND_Y) this.y = GROUND_Y - this.h; if(this.y < 20) this.y = 20;
         if(this.type==='traitor' && !this.fired && this.x < player.x-100) { 
              this.fired=true; game.bullets.push({x:this.x+this.w, y:this.y+10, vx:12, type:'rocket', dead:false});
              spawnPart(this.x, this.y, 10, '#fff', 2, 0); sfx.play('shoot');
@@ -416,26 +407,30 @@ function spawnPart(x, y, n, c, vx, vy) { for(let i=0;i<n;i++) game.particles.pus
 function updateHearts() { let s=""; for(let i=0;i<player.hp;i++) s+="❤"; document.getElementById('hp-disp').innerText=s; }
 
 function updateGame() {
-    if(++game.themeTimer > 1200) { game.themeTimer=0; game.themeIdx=(game.themeIdx+1)%THEMES.length; game.bannerSpawned=false; }
+    if(++game.themeTimer > THEME_DURATION) { game.themeTimer=0; game.themeIdx=(game.themeIdx+1)%THEMES.length; game.bannerSpawned=false; }
     if(!game.bannerSpawned && game.themeTimer===100) { game.bgLayers.push(new ParallaxObject(1, "banner_abhik", W+100, 150)); game.bannerSpawned=true; }
     
     let r = Math.random(); let tId = THEMES[game.themeIdx].id;
-    if(r<0.015 && tId==='earth') game.bgLayers.push(new ParallaxObject(1, "mountain", W, 200));
-    if(r<0.01 && tId==='earth') game.bgLayers.push(new ParallaxObject(0, "cloud", W, 80));
     
-    // MARS MOONS (Phobos & Deimos)
-    if(r<0.01 && tId==='mars') {
-        game.bgLayers.push(new ParallaxObject(0, Math.random()>0.5?"phobos":"deimos", W, 50 + Math.random()*100));
+    // SPAWN DECOR based on Theme
+    if(tId === 'earth') {
+        if(r < 0.015) game.bgLayers.push(new ParallaxObject(1, "mountain", W, 200));
+        if(r < 0.01) game.bgLayers.push(new ParallaxObject(0, "cloud", W, 80));
     }
-
-    if(r<0.02 && tId==='neon') game.bgLayers.push(new ParallaxObject(0, "flying_car", W, 100));
+    if(tId === 'mars') {
+        // ONLY MOONS
+        if(r < 0.01) game.bgLayers.push(new ParallaxObject(0, Math.random()>.5?"phobos":"deimos", W, 50 + Math.random()*100));
+    }
+    if(tId === 'neon' && r < 0.02) game.bgLayers.push(new ParallaxObject(0, "flying_car", W, 100));
     
-    if(game.frame > 100 && game.frame % Math.max(30, 90 - (game.level * 10)) === 0) {
+    // SPAWN ENEMIES
+    let spawnRate = Math.max(30, 90 - (game.level * 10));
+    if(game.frame > 100 && game.frame % spawnRate === 0) {
         let rand = Math.random();
         if(Math.random() < THEMES[game.themeIdx].hazardChance) game.entities.push(new Enemy('buggy_code', W, GROUND_Y-40));
         else if(game.level === 1) game.entities.push(new Enemy('goon', W, GROUND_Y-40));
         else {
-            if(rand < 0.2) game.entities.push(new Enemy('dragon', W, 100));
+            if(rand < 0.25) game.entities.push(new Enemy('dragon', W, 100));
             else if(rand < 0.4) game.entities.push(new Enemy('alien', W, 200));
             else if(rand < 0.6) game.entities.push(new Enemy('drone', W, 150));
             else if(rand < 0.8) game.entities.push(new Enemy('traitor', W, GROUND_Y-40));
