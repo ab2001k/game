@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Omniverse: Flawless Edition</title>
+<title>Omniverse: Final Director's Cut</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎮</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Orbitron:wght@500;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
@@ -24,12 +24,10 @@
         user-select: none;
     }
 
-    /* THE MAGIC FIX: This ensures the 16:9 box fits perfectly in ANY window */
     #game-container {
-        position: relative;
-        /* Logic: Width is either full width OR based on height ratio. Height is either full height OR based on width ratio. */
-        width: min(100vw, 177.78vh); 
-        height: min(56.25vw, 100vh);
+        position: relative; 
+        width: 100%; max-width: 1280px;
+        aspect-ratio: 16/9;
         background: #000; 
         box-shadow: 0 0 80px rgba(0, 243, 255, 0.15);
         border: 2px solid #333;
@@ -40,9 +38,8 @@
         image-rendering: auto; 
     }
 
-    /* UI ELEMENTS */
     #ui-layer {
-        position: absolute; inset: 0; pointer-events: none; padding: 2%;
+        position: absolute; inset: 0; pointer-events: none; padding: 25px;
         display: flex; flex-direction: column; justify-content: space-between; z-index: 10;
     }
     .hud-top { display: flex; justify-content: space-between; width: 100%; align-items: flex-start; }
@@ -52,7 +49,7 @@
         border: 1px solid rgba(255,255,255,0.15);
         padding: 10px 20px; border-radius: 4px;
         box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-        min-width: 15%;
+        min-width: 220px;
     }
     
     .hp-text { font-size: 2rem; letter-spacing: 5px; color: var(--danger); text-shadow: 0 0 15px var(--danger); }
@@ -67,15 +64,16 @@
     #mobile-link {
         position: absolute; top: 10px; right: 10px; pointer-events: auto;
         background: #333; color: #fff; text-decoration: none;
-        padding: 8px 16px; font-size: 0.8rem; border: 1px solid #555;
-        font-family: sans-serif; opacity: 0.7; transition: 0.2s; z-index: 200; border-radius: 4px;
+        padding: 10px 20px; font-size: 0.9rem; border: 1px solid #555;
+        font-family: sans-serif; opacity: 0.7; transition: 0.2s; z-index: 200;
+        border-radius: 4px; font-weight: bold;
     }
     #mobile-link:hover { opacity: 1; background: var(--primary); color: #000; box-shadow: 0 0 15px var(--primary); }
 
     #menu-overlay {
         position: absolute; inset: 0; background: rgba(0,0,0,0.95);
         display: flex; flex-direction: column; justify-content: center; align-items: center;
-        z-index: 100; text-align: center; backdrop-filter: blur(5px);
+        z-index: 100; text-align: center; backdrop-filter: blur(10px);
     }
     h1 {
         font-family: 'Black Ops One'; font-size: clamp(3rem, 6vw, 6rem); margin: 0;
@@ -86,13 +84,21 @@
     .menu-panel {
         border-top: 2px solid var(--primary); border-bottom: 2px solid var(--primary); 
         padding: 40px; background: rgba(0, 20, 20, 0.8);
-        width: 100%; max-width: 600px;
+        width: 100%; max-width: 700px;
     }
+    
+    .lvl-select { display: flex; gap: 10px; justify-content: center; margin: 20px 0; }
+    .lvl-btn {
+        background: rgba(0,0,0,0.5); border: 1px solid #555; color: #888;
+        padding: 10px 20px; cursor: pointer; font-family: 'Orbitron'; transition: 0.2s;
+    }
+    .lvl-btn.active { background: var(--primary); color: #000; box-shadow: 0 0 15px var(--primary); transform: scale(1.1); }
+
     .start-btn {
         display: inline-block; padding: 20px 60px; font-family: 'Orbitron'; font-size: 1.5rem; font-weight: 900;
         background: var(--danger); border: none; color: white; cursor: pointer; 
         clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px);
-        transition: transform 0.1s, filter 0.1s; margin-top: 30px;
+        transition: transform 0.1s, filter 0.1s; margin-top: 10px;
     }
     .start-btn:hover { transform: scale(1.05); filter: brightness(1.2); box-shadow: 0 0 30px var(--danger); }
     .hidden { display: none !important; }
@@ -107,7 +113,7 @@
 <body>
 
 <div id="game-container">
-    <a href="game.html" id="mobile-link">MOBILE VER 📱</a>
+    <a href="game.html" id="mobile-link">SWITCH TO MOBILE 📱</a>
     
     <canvas id="cvs" width="1280" height="720"></canvas>
 
@@ -119,11 +125,11 @@
             </div>
             <div class="stat-panel">
                 <div class="bar-group">
-                    <div class="bar-label"><span>PLASMA</span> <span id="hud-ammo-txt">12</span></div>
+                    <div class="bar-label"><span>PLASMA CANNON</span> <span id="hud-ammo-txt">12</span></div>
                     <div class="bar-track"><div class="bar-fill" id="hud-ammo-bar" style="background:var(--warn)"></div></div>
                 </div>
                 <div class="bar-group">
-                    <div class="bar-label"><span>JETPACK</span> <span id="hud-fuel-txt">100%</span></div>
+                    <div class="bar-label"><span>JETPACK FUEL</span> <span id="hud-fuel-txt">100%</span></div>
                     <div class="bar-track"><div class="bar-fill" id="hud-fuel-bar" style="background:var(--primary)"></div></div>
                 </div>
             </div>
@@ -135,27 +141,30 @@
             <h1>OMNIVERSE</h1>
             <p style="color:var(--primary); font-size: 1.2rem; letter-spacing: 6px; font-weight:bold;">PC MASTER EDITION</p>
             
+            <div class="lvl-select" id="lvl-container">
+                </div>
+
+            <button class="start-btn" onclick="GAME.start()">INITIALIZE SYSTEM</button>
+            <div style="font-size:0.8rem; margin-top:10px; color:#666;">PRESS [SPACE] TO START</div>
+
             <div id="controls-hint">
                 <div>MOVE: <span class="key">←</span> <span class="key">→</span></div>
                 <div>JUMP: <span class="key">SPACE</span> (Tap)</div>
                 <div>JETPACK: <span class="key">SPACE</span> (Hold)</div>
                 <div>SHOOT: <span class="key">F</span></div>
             </div>
-
-            <button class="start-btn" onclick="GAME.start()">INITIALIZE SYSTEM</button>
         </div>
     </div>
 </div>
 
 <script>
-/* ================= SYSTEM: AUDIO & INPUT ================= */
+/* ================= SYSTEM ================= */
 const AudioSys = {
     ctx: null,
     init: function() {
-        // Attempt init immediately for PC
-        try { this.ctx = new (window.AudioContext||window.webkitAudioContext)(); } catch(e){}
-    },
-    resume: function() {
+        if(!this.ctx) {
+            try { this.ctx = new (window.AudioContext||window.webkitAudioContext)(); } catch(e){}
+        }
         if(this.ctx && this.ctx.state==='suspended') this.ctx.resume();
     },
     play: function(t) {
@@ -180,7 +189,10 @@ const Input = {
         if(c==='ArrowRight') this.keys.Right = s;
         if(c==='Space' || c==='ArrowUp') {
             this.keys.Up = s;
-            if(s && !this.prevUp && GAME.active) GAME.player.tapJump();
+            if(s && !this.prevUp) {
+                if(!GAME.active) GAME.start(); // Menu Start
+                else GAME.player.tapJump();
+            }
             this.prevUp = s;
         }
         if(c==='KeyF') { if(s && !this.keys.Fire && GAME.active) GAME.player.shoot(); this.keys.Fire = s; }
@@ -199,23 +211,20 @@ class BackMissile {
     constructor(yPos) {
         this.x = -100; this.y = yPos; 
         this.w = 40; this.h = 12;
-        this.vx = 8; this.dead = false;
+        this.vx = 8 + (GAME.level*0.5); this.dead = false;
         GAME.txts.push(new FloatingText(150, this.y, "⚠ BACK ATTACK", "#f00"));
         AudioSys.play('shoot'); 
     }
     update() {
         this.x += this.vx;
-        // Homing Logic
         if(this.x < GAME.player.x) { 
             if(this.y < GAME.player.y) this.y += 1.5;
             if(this.y > GAME.player.y) this.y -= 1.5;
         }
         GAME.spawnPart(this.x, this.y+5, '#f00', 3, 5, 0); 
         if(this.x > GAME.W + 50) this.dead = true;
-        
         if(checkRect(this, GAME.player)) {
-            GAME.player.hit(1);
-            this.dead = true;
+            GAME.player.hit(1); this.dead = true;
             GAME.spawnPart(this.x, this.y, '#f00', 20, 20, 0);
         }
     }
@@ -252,9 +261,10 @@ class Player {
         else { this.vx *= 0.8; this.walkCycle=0; }
         this.x = Math.max(0, Math.min(GAME.W-this.w, this.x+this.vx));
 
+        // JETPACK: Only if holding UP
         if(Input.keys.Up && !this.grounded && this.fuel>0) {
-            this.vy -= 0.8; this.fuel -= 1;
-            GAME.spawnPart(this.x+10, this.y+45, '#0ff', 4, 10, 0.5);
+            this.vy -= 0.9; this.fuel -= 1.2;
+            GAME.spawnPart(this.x+10, this.y+45, '#0ff', 4, 10, 0.5); // Thruster
             if(GAME.frames%6===0) AudioSys.play('jet');
         } else if(this.grounded && this.fuel<100) this.fuel += 0.6;
 
@@ -273,8 +283,9 @@ class Player {
         this.updateHUD();
     }
     tapJump() {
+        // FIXED: Smaller jump force (-10 instead of -14)
         if(this.grounded || this.jumpCount < 2) {
-            this.vy = -14; this.jumpCount++; this.grounded=false;
+            this.vy = -10; this.jumpCount++; this.grounded=false;
             AudioSys.play('jump');
             GAME.spawnPart(this.x+20, this.y+50, '#fff', 5, 20, 0);
         }
@@ -320,27 +331,32 @@ class Player {
 class Enemy {
     constructor(t) {
         this.t=t; this.dead=false; this.x=GAME.W+50; this.w=40; this.h=40; this.hp=1; this.tm=0;
-        if(t==='dragon') { this.y=50+Math.random()*150; this.w=100; this.h=60; this.hp=8; }
-        else if(t==='ufo') { this.y=50; this.w=60; this.h=30; this.hp=3; }
+        this.yBase = 50 + Math.random() * (GAME.GroundY - 150);
+        this.yPhase = Math.random() * Math.PI; // Random start phase
+        
+        if(t==='dragon') { this.w=100; this.h=60; this.hp=2; }
+        else if(t==='ufo') { this.w=60; this.h=30; this.hp=2; }
         else if(t==='tnt') { this.y=GAME.GroundY-30; this.w=30; this.h=30; }
         else if(t==='traitor') { this.y=GAME.GroundY-50; this.h=50; this.hp=2; this.fired=false; }
         else this.y=GAME.GroundY-40;
     }
     update() {
-        this.x -= (3 + GAME.level*0.5); this.tm++;
+        this.x -= (3 + GAME.level * 0.8); // Speed scales with level
+        this.tm++;
         
-        // 1. BACKSIDE MISSILE: Traitor fires once past player
+        // 1. BACKSIDE MISSILE
         if(this.t==='traitor' && this.x < -50 && !this.fired) {
             this.fired = true;
             GAME.ents.push(new BackMissile(this.y + 10));
         }
 
-        if(this.t==='dragon') {
-            this.y += Math.sin(this.tm*0.05)*2;
-        }
-        if(this.t==='ufo') {
-            // 5. ALIEN SWOOP: Touches ground and goes up
-            this.y = 100 + Math.abs(Math.sin(this.tm * 0.015)) * (GAME.H/1.5);
+        // FIXED: Complex Movement (Up/Down)
+        if(this.t==='dragon' || this.t==='ufo') {
+            // Oscillate full height randomly
+            this.y = this.yBase + Math.sin(this.tm * 0.03 + this.yPhase) * 150;
+            // Clamp to screen
+            if(this.y < 50) this.y = 50;
+            if(this.y > GAME.GroundY - 80) this.y = GAME.GroundY - 80;
         }
         
         if(this.x < -200) this.dead=true;
@@ -351,8 +367,13 @@ class Enemy {
         }
     }
     hit() {
-        this.hp--; GAME.spawnPart(this.x+20,this.y+20,'#fff',3,5,0);
-        if(this.hp<=0) {
+        this.hp--; 
+        if(this.hp>0) {
+            // Knockback down
+            this.y += 30;
+            AudioSys.play('jump'); // Hit sound
+            GAME.spawnPart(this.x+20,this.y+20,'#fff',3,5,0);
+        } else {
             this.dead=true; GAME.score += (this.t==='dragon'?500:100);
             GAME.spawnPart(this.x,this.y,this.t==='tnt'?'#f00':'#fc0', 20, 20, 0.5);
             AudioSys.play('boom');
@@ -360,14 +381,18 @@ class Enemy {
     }
     draw(ctx) {
         if(this.t==='dragon') {
-            // 4. DRAGON FLAPPING WINGS
-            let wingY = Math.sin(this.tm * 0.2) * 20;
-            ctx.fillStyle='#900'; ctx.beginPath(); ctx.ellipse(this.x+50,this.y+30,50,25,0,0,Math.PI*2); ctx.fill();
+            // IMPROVED DRAGON
+            let wingY = Math.sin(this.tm * 0.3) * 25;
+            ctx.fillStyle='#900'; 
+            // Body S-Curve simplified
+            ctx.beginPath(); ctx.ellipse(this.x+50, this.y+30, 50, 20, 0, 0, Math.PI*2); ctx.fill();
+            // Neck
+            ctx.beginPath(); ctx.moveTo(this.x+20, this.y+30); ctx.quadraticCurveTo(this.x, this.y+10, this.x-10, this.y+20); 
+            ctx.lineWidth=10; ctx.strokeStyle='#900'; ctx.stroke(); ctx.lineWidth=1;
             // Wing
             ctx.fillStyle='#f00'; ctx.beginPath(); ctx.moveTo(this.x+50,this.y+10); 
-            ctx.lineTo(this.x+50, this.y-40+wingY); 
+            ctx.lineTo(this.x+50, this.y-30+wingY); 
             ctx.lineTo(this.x+90,this.y+10); ctx.fill();
-            ctx.fillStyle='#000'; ctx.fillRect(this.x,this.y+20,10,10);
         } else if(this.t==='tnt') {
             ctx.fillStyle='#111'; ctx.beginPath(); ctx.arc(this.x+15,this.y+15,15,0,Math.PI*2); ctx.fill();
             ctx.fillStyle='#f00'; ctx.font="bold 10px Arial"; ctx.fillText("TNT", this.x+4, this.y+18);
@@ -380,7 +405,8 @@ class Enemy {
         } else {
             ctx.fillStyle='#c0c'; ctx.fillRect(this.x, this.y, this.w, this.h);
         }
-        if(this.hp>1) { ctx.fillStyle='red'; ctx.fillRect(this.x,this.y-10,this.w*(this.hp/8),4); }
+        // HP Bar
+        if(this.hp>1) { ctx.fillStyle='red'; ctx.fillRect(this.x,this.y-10,this.w*(this.hp/2),4); }
     }
 }
 
@@ -393,7 +419,7 @@ class FloatingText {
 const GAME = {
     cvs: document.getElementById('cvs'), ctx: document.getElementById('cvs').getContext('2d'),
     W: 1280, H: 720, GroundY: 640, Gravity: 0.6,
-    active: false, frames: 0, score: 0, level: 1, shake: 0,
+    active: false, frames: 0, score: 0, level: 3, shake: 0,
     player: null, ents: [], bulls: [], parts: [], txts: [], 
     
     themes: [
@@ -408,20 +434,33 @@ const GAME = {
     init: function() {
         Input.init();
         AudioSys.init();
-        // FORCE INITIAL RENDER
-        this.frames = 0; 
-        this.draw(); 
-        this.ctx.fillStyle = "rgba(0,0,0,0.5)";
-        this.ctx.fillRect(0,0,this.W,this.H);
+        // Setup Level Buttons
+        const c = document.getElementById('lvl-container');
+        for(let i=1; i<=5; i++) {
+            let b = document.createElement('div');
+            b.className = i===3 ? 'lvl-btn active' : 'lvl-btn';
+            b.innerText = "LVL "+i;
+            b.onclick = () => { 
+                GAME.level = i; 
+                document.querySelectorAll('.lvl-btn').forEach(x=>x.classList.remove('active'));
+                b.classList.add('active');
+            };
+            c.appendChild(b);
+        }
+        // Force Draw
+        this.ctx.fillStyle = '#000'; this.ctx.fillRect(0,0,this.W,this.H);
+        this.ctx.fillStyle = '#00f3ff'; this.ctx.font = '30px Orbitron';
+        this.ctx.fillText("SYSTEM READY", 50, 50);
     },
 
     start: function() {
-        this.active = true; this.score = 0; this.frames = 0; this.level = 1;
+        this.active = true; this.score = 0; this.frames = 0; 
+        // Level is set by buttons, default 3
         this.player = new Player();
         this.ents = []; this.bulls = []; this.parts = []; this.txts = [];
         this.bgLayer1 = []; this.bgLayer2 = [];
         
-        AudioSys.resume();
+        AudioSys.init();
         document.getElementById('menu-overlay').classList.add('hidden');
         this.loop();
     },
@@ -431,21 +470,26 @@ const GAME = {
     update: function() {
         this.frames++;
         
+        // Theme Cycle
         if(this.frames % 1200 === 0) {
             this.themeIdx = (this.themeIdx + 1) % 4;
             this.txts.push(new FloatingText(this.W/2-50, 200, "WARP: " + this.themes[this.themeIdx].id.toUpperCase(), "#fff"));
         }
         
-        // 2. OPTIMIZED BG GENERATION (No Filters)
+        // BG Gen
         if(this.frames % 200 === 0) this.bgLayer1.push({x:this.W, type:'mountain'}); 
         if(this.frames % 60 === 0) this.bgLayer2.push({x:this.W, type:'tree'});
         if(this.frames % 1200 === 100) this.bgLayer1.push({x:this.W, type:'brand'});
 
-        if(this.frames % Math.max(40, 100-this.level*5) === 0) {
+        // Difficulty Scaling based on Level AND Score
+        let currentDifficulty = GAME.level + Math.floor(GAME.score/2000);
+        let spawnRate = Math.max(20, 80 - (currentDifficulty * 8));
+
+        if(this.frames % spawnRate === 0) {
             let r=Math.random();
             if(r<0.15) this.ents.push(new Enemy('dragon'));
             else if(r<0.3) this.ents.push(new Enemy('ufo'));
-            else if(r<0.6) this.ents.push(new Enemy('traitor')); // More traitors for missile mechanics
+            else if(r<0.6) this.ents.push(new Enemy('traitor'));
             else if(r<0.7) this.ents.push(new Enemy('tnt'));
             else this.ents.push(new Enemy('basic'));
         }
@@ -457,7 +501,6 @@ const GAME = {
             b.update();
             if(b.o==='player') {
                 this.ents.forEach(e=>{ if(!b.dead && !e.dead && checkRect(b,e)) { b.dead=true; e.hit(); }});
-                // Can shoot missiles too
                 this.ents.forEach(e=>{ if(!b.dead && e instanceof BackMissile && checkRect(b,e)) { b.dead=true; e.hit(); }});
             } else if (checkRect(b, GAME.player)) { b.dead=true; GAME.player.hit(1); }
         });
@@ -465,31 +508,33 @@ const GAME = {
         this.parts.forEach(p=>p.update()); this.parts=this.parts.filter(p=>p.l>0);
         this.txts.forEach(t=>t.update()); this.txts=this.txts.filter(t=>t.l>0);
         
-        // Strict cleanup
         this.bgLayer1.forEach(b => b.x -= 0.5); this.bgLayer1 = this.bgLayer1.filter(b=>b.x > -500);
         this.bgLayer2.forEach(b => b.x -= 2);   this.bgLayer2 = this.bgLayer2.filter(b=>b.x > -200);
 
         if(this.shake>0) this.shake*=0.9;
+        
+        // Level Up by Score
+        if(this.score > 0 && this.score % 1000 === 0) {
+             this.txts.push(new FloatingText(this.W/2, 100, "SPEED UP!", "#0ff"));
+        }
     },
 
     draw: function() {
         let t = this.themes[this.themeIdx];
         
-        // Background
         let g = this.ctx.createLinearGradient(0,0,0,this.H); g.addColorStop(0,t.sky[0]); g.addColorStop(1,t.sky[1]);
         this.ctx.fillStyle = g; this.ctx.fillRect(0,0,this.W,this.H);
 
         this.ctx.save();
         if(this.shake>0.5) this.ctx.translate((Math.random()-.5)*this.shake, (Math.random()-.5)*this.shake);
 
-        // Mars Moons
         if(t.id==='Mars') {
             this.ctx.fillStyle = "rgba(200,50,50,0.4)";
             this.ctx.beginPath(); this.ctx.arc(this.W-200, 150, 40, 0, Math.PI*2); this.ctx.fill();
             this.ctx.beginPath(); this.ctx.arc(this.W-100, 250, 20, 0, Math.PI*2); this.ctx.fill();
         }
         
-        // 2. NO FILTERS - Just Transparency for Depth
+        // Backgrounds (No Blur filter for speed)
         this.bgLayer1.forEach(b => {
             if(b.type==='mountain') {
                 this.ctx.fillStyle = "rgba(0,0,0,0.3)";
@@ -501,13 +546,13 @@ const GAME = {
         });
 
         this.bgLayer2.forEach(b => {
-            // 3. CHRISTMAS TREES (Soft blur via Alpha)
-            this.ctx.fillStyle = "rgba(101, 67, 33, 0.7)"; // Brown Trunk
+            // CHRISTMAS TREE LOOK
+            this.ctx.fillStyle = "#5D4037"; // Trunk
             this.ctx.fillRect(b.x+8, this.GroundY-30, 14, 30); 
-            this.ctx.fillStyle = "rgba(34, 139, 34, 0.8)"; // Green Pine
-            this.ctx.beginPath(); this.ctx.moveTo(b.x-10, this.GroundY-30); 
-            this.ctx.lineTo(b.x+15, this.GroundY-100); 
-            this.ctx.lineTo(b.x+40, this.GroundY-30); this.ctx.fill();
+            this.ctx.fillStyle = "#2E7D32"; // Pine
+            this.ctx.beginPath(); this.ctx.moveTo(b.x-15, this.GroundY-30); 
+            this.ctx.lineTo(b.x+15, this.GroundY-110); 
+            this.ctx.lineTo(b.x+45, this.GroundY-30); this.ctx.fill();
         });
 
         this.ctx.fillStyle = t.ground; this.ctx.fillRect(0, this.GroundY, this.W, this.H-this.GroundY);
