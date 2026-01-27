@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Omniverse: Final Director's Cut</title>
+<title>Omniverse: Director's Cut</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎮</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Orbitron:wght@500;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
@@ -190,7 +190,7 @@ const Input = {
         if(c==='Space' || c==='ArrowUp') {
             this.keys.Up = s;
             if(s && !this.prevUp) {
-                if(!GAME.active) GAME.start(); // Menu Start
+                if(!GAME.active) GAME.start();
                 else GAME.player.tapJump();
             }
             this.prevUp = s;
@@ -261,10 +261,9 @@ class Player {
         else { this.vx *= 0.8; this.walkCycle=0; }
         this.x = Math.max(0, Math.min(GAME.W-this.w, this.x+this.vx));
 
-        // JETPACK: Only if holding UP
         if(Input.keys.Up && !this.grounded && this.fuel>0) {
             this.vy -= 0.9; this.fuel -= 1.2;
-            GAME.spawnPart(this.x+10, this.y+45, '#0ff', 4, 10, 0.5); // Thruster
+            GAME.spawnPart(this.x+10, this.y+45, '#0ff', 4, 10, 0.5);
             if(GAME.frames%6===0) AudioSys.play('jet');
         } else if(this.grounded && this.fuel<100) this.fuel += 0.6;
 
@@ -283,7 +282,6 @@ class Player {
         this.updateHUD();
     }
     tapJump() {
-        // FIXED: Smaller jump force (-10 instead of -14)
         if(this.grounded || this.jumpCount < 2) {
             this.vy = -10; this.jumpCount++; this.grounded=false;
             AudioSys.play('jump');
@@ -310,7 +308,6 @@ class Player {
     }
     draw(ctx) {
         if(this.invuln>0 && Math.floor(GAME.frames/4)%2) return;
-        
         let legOffset = Math.sin(this.walkCycle) * 10;
         ctx.fillStyle = '#bbb';
         if(this.grounded) {
@@ -320,7 +317,6 @@ class Player {
             ctx.fillRect(this.x+8, this.y+40, 8, 8); 
             ctx.fillRect(this.x+24, this.y+45, 8, 8);
         }
-
         ctx.fillStyle = '#fff'; ctx.fillRect(this.x, this.y, this.w, this.h-10);
         ctx.fillStyle = '#333'; ctx.fillRect(this.x+20, this.y+10, 20, 10);
         ctx.fillStyle = '#555'; ctx.fillRect(this.x-5, this.y+10, 10, 30);
@@ -332,7 +328,7 @@ class Enemy {
     constructor(t) {
         this.t=t; this.dead=false; this.x=GAME.W+50; this.w=40; this.h=40; this.hp=1; this.tm=0;
         this.yBase = 50 + Math.random() * (GAME.GroundY - 150);
-        this.yPhase = Math.random() * Math.PI; // Random start phase
+        this.yPhase = Math.random() * Math.PI;
         
         if(t==='dragon') { this.w=100; this.h=60; this.hp=2; }
         else if(t==='ufo') { this.w=60; this.h=30; this.hp=2; }
@@ -341,20 +337,16 @@ class Enemy {
         else this.y=GAME.GroundY-40;
     }
     update() {
-        this.x -= (3 + GAME.level * 0.8); // Speed scales with level
-        this.tm++;
+        this.x -= (3 + GAME.level * 0.8); this.tm++;
         
-        // 1. BACKSIDE MISSILE
+        // BACKSIDE MISSILE
         if(this.t==='traitor' && this.x < -50 && !this.fired) {
             this.fired = true;
             GAME.ents.push(new BackMissile(this.y + 10));
         }
 
-        // FIXED: Complex Movement (Up/Down)
         if(this.t==='dragon' || this.t==='ufo') {
-            // Oscillate full height randomly
             this.y = this.yBase + Math.sin(this.tm * 0.03 + this.yPhase) * 150;
-            // Clamp to screen
             if(this.y < 50) this.y = 50;
             if(this.y > GAME.GroundY - 80) this.y = GAME.GroundY - 80;
         }
@@ -368,28 +360,32 @@ class Enemy {
     }
     hit() {
         this.hp--; 
-        if(this.hp>0) {
-            // Knockback down
-            this.y += 30;
-            AudioSys.play('jump'); // Hit sound
-            GAME.spawnPart(this.x+20,this.y+20,'#fff',3,5,0);
+        if(this.hp > 0) {
+            this.y += 30; // Knockback
+            AudioSys.play('jump'); GAME.spawnPart(this.x+20,this.y+20,'#fff',3,5,0);
         } else {
             this.dead=true; GAME.score += (this.t==='dragon'?500:100);
+            
+            // BURST DAMAGE FOR TRAITOR
+            if(this.t === 'traitor') {
+                let dist = Math.hypot((this.x+this.w/2)-(GAME.player.x+GAME.player.w/2), (this.y+this.h/2)-(GAME.player.y+GAME.player.h/2));
+                if(dist < 180) {
+                    GAME.player.hit(1);
+                    GAME.txts.push(new FloatingText(this.x, this.y-50, "BLAST DAMAGE!", "#f00"));
+                }
+            }
+
             GAME.spawnPart(this.x,this.y,this.t==='tnt'?'#f00':'#fc0', 20, 20, 0.5);
             AudioSys.play('boom');
         }
     }
     draw(ctx) {
         if(this.t==='dragon') {
-            // IMPROVED DRAGON
             let wingY = Math.sin(this.tm * 0.3) * 25;
             ctx.fillStyle='#900'; 
-            // Body S-Curve simplified
             ctx.beginPath(); ctx.ellipse(this.x+50, this.y+30, 50, 20, 0, 0, Math.PI*2); ctx.fill();
-            // Neck
             ctx.beginPath(); ctx.moveTo(this.x+20, this.y+30); ctx.quadraticCurveTo(this.x, this.y+10, this.x-10, this.y+20); 
             ctx.lineWidth=10; ctx.strokeStyle='#900'; ctx.stroke(); ctx.lineWidth=1;
-            // Wing
             ctx.fillStyle='#f00'; ctx.beginPath(); ctx.moveTo(this.x+50,this.y+10); 
             ctx.lineTo(this.x+50, this.y-30+wingY); 
             ctx.lineTo(this.x+90,this.y+10); ctx.fill();
@@ -405,7 +401,6 @@ class Enemy {
         } else {
             ctx.fillStyle='#c0c'; ctx.fillRect(this.x, this.y, this.w, this.h);
         }
-        // HP Bar
         if(this.hp>1) { ctx.fillStyle='red'; ctx.fillRect(this.x,this.y-10,this.w*(this.hp/2),4); }
     }
 }
@@ -432,22 +427,15 @@ const GAME = {
     bgLayer1: [], bgLayer2: [],
 
     init: function() {
-        Input.init();
-        AudioSys.init();
-        // Setup Level Buttons
+        Input.init(); AudioSys.init();
         const c = document.getElementById('lvl-container');
         for(let i=1; i<=5; i++) {
             let b = document.createElement('div');
             b.className = i===3 ? 'lvl-btn active' : 'lvl-btn';
             b.innerText = "LVL "+i;
-            b.onclick = () => { 
-                GAME.level = i; 
-                document.querySelectorAll('.lvl-btn').forEach(x=>x.classList.remove('active'));
-                b.classList.add('active');
-            };
+            b.onclick = () => { GAME.level = i; document.querySelectorAll('.lvl-btn').forEach(x=>x.classList.remove('active')); b.classList.add('active'); };
             c.appendChild(b);
         }
-        // Force Draw
         this.ctx.fillStyle = '#000'; this.ctx.fillRect(0,0,this.W,this.H);
         this.ctx.fillStyle = '#00f3ff'; this.ctx.font = '30px Orbitron';
         this.ctx.fillText("SYSTEM READY", 50, 50);
@@ -455,11 +443,9 @@ const GAME = {
 
     start: function() {
         this.active = true; this.score = 0; this.frames = 0; 
-        // Level is set by buttons, default 3
         this.player = new Player();
         this.ents = []; this.bulls = []; this.parts = []; this.txts = [];
         this.bgLayer1 = []; this.bgLayer2 = [];
-        
         AudioSys.init();
         document.getElementById('menu-overlay').classList.add('hidden');
         this.loop();
@@ -469,19 +455,14 @@ const GAME = {
 
     update: function() {
         this.frames++;
-        
-        // Theme Cycle
         if(this.frames % 1200 === 0) {
             this.themeIdx = (this.themeIdx + 1) % 4;
             this.txts.push(new FloatingText(this.W/2-50, 200, "WARP: " + this.themes[this.themeIdx].id.toUpperCase(), "#fff"));
         }
-        
-        // BG Gen
         if(this.frames % 200 === 0) this.bgLayer1.push({x:this.W, type:'mountain'}); 
         if(this.frames % 60 === 0) this.bgLayer2.push({x:this.W, type:'tree'});
         if(this.frames % 1200 === 100) this.bgLayer1.push({x:this.W, type:'brand'});
 
-        // Difficulty Scaling based on Level AND Score
         let currentDifficulty = GAME.level + Math.floor(GAME.score/2000);
         let spawnRate = Math.max(20, 80 - (currentDifficulty * 8));
 
@@ -495,7 +476,6 @@ const GAME = {
         }
 
         this.player.update();
-        
         this.ents.forEach(e=>e.update()); this.ents=this.ents.filter(e=>!e.dead);
         this.bulls.forEach(b=>{
             b.update();
@@ -507,24 +487,16 @@ const GAME = {
         this.bulls=this.bulls.filter(b=>!b.dead);
         this.parts.forEach(p=>p.update()); this.parts=this.parts.filter(p=>p.l>0);
         this.txts.forEach(t=>t.update()); this.txts=this.txts.filter(t=>t.l>0);
-        
         this.bgLayer1.forEach(b => b.x -= 0.5); this.bgLayer1 = this.bgLayer1.filter(b=>b.x > -500);
         this.bgLayer2.forEach(b => b.x -= 2);   this.bgLayer2 = this.bgLayer2.filter(b=>b.x > -200);
-
         if(this.shake>0) this.shake*=0.9;
-        
-        // Level Up by Score
-        if(this.score > 0 && this.score % 1000 === 0) {
-             this.txts.push(new FloatingText(this.W/2, 100, "SPEED UP!", "#0ff"));
-        }
+        if(this.score > 0 && this.score % 1000 === 0) this.txts.push(new FloatingText(this.W/2, 100, "SPEED UP!", "#0ff"));
     },
 
     draw: function() {
         let t = this.themes[this.themeIdx];
-        
         let g = this.ctx.createLinearGradient(0,0,0,this.H); g.addColorStop(0,t.sky[0]); g.addColorStop(1,t.sky[1]);
         this.ctx.fillStyle = g; this.ctx.fillRect(0,0,this.W,this.H);
-
         this.ctx.save();
         if(this.shake>0.5) this.ctx.translate((Math.random()-.5)*this.shake, (Math.random()-.5)*this.shake);
 
@@ -534,25 +506,18 @@ const GAME = {
             this.ctx.beginPath(); this.ctx.arc(this.W-100, 250, 20, 0, Math.PI*2); this.ctx.fill();
         }
         
-        // Backgrounds (No Blur filter for speed)
         this.bgLayer1.forEach(b => {
             if(b.type==='mountain') {
                 this.ctx.fillStyle = "rgba(0,0,0,0.3)";
                 this.ctx.beginPath(); this.ctx.moveTo(b.x, this.GroundY); 
                 this.ctx.lineTo(b.x+150, this.GroundY-200); this.ctx.lineTo(b.x+300, this.GroundY); this.ctx.fill();
-            } else if (b.type==='brand') {
-                this.drawBrand(b.x, t.id);
-            }
+            } else if (b.type==='brand') { this.drawBrand(b.x, t.id); }
         });
 
         this.bgLayer2.forEach(b => {
-            // CHRISTMAS TREE LOOK
-            this.ctx.fillStyle = "#5D4037"; // Trunk
-            this.ctx.fillRect(b.x+8, this.GroundY-30, 14, 30); 
-            this.ctx.fillStyle = "#2E7D32"; // Pine
-            this.ctx.beginPath(); this.ctx.moveTo(b.x-15, this.GroundY-30); 
-            this.ctx.lineTo(b.x+15, this.GroundY-110); 
-            this.ctx.lineTo(b.x+45, this.GroundY-30); this.ctx.fill();
+            this.ctx.fillStyle = "#5D4037"; this.ctx.fillRect(b.x+8, this.GroundY-30, 14, 30); 
+            this.ctx.fillStyle = "#2E7D32"; this.ctx.beginPath(); this.ctx.moveTo(b.x-15, this.GroundY-30); 
+            this.ctx.lineTo(b.x+15, this.GroundY-110); this.ctx.lineTo(b.x+45, this.GroundY-30); this.ctx.fill();
         });
 
         this.ctx.fillStyle = t.ground; this.ctx.fillRect(0, this.GroundY, this.W, this.H-this.GroundY);
@@ -563,7 +528,6 @@ const GAME = {
         this.player.draw(this.ctx);
         this.parts.forEach(p=>p.draw(this.ctx));
         this.txts.forEach(t=>t.draw(this.ctx));
-        
         this.ctx.restore();
     },
 
