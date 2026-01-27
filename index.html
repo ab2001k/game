@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Omniverse: Hardcore Edition</title>
+<title>Omniverse: Ultimate Edition</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎮</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Orbitron:wght@500;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
@@ -20,7 +20,7 @@
         margin: 0; overflow: hidden; background: var(--bg);
         font-family: 'Orbitron', sans-serif;
         display: flex; justify-content: center; align-items: center; 
-        height: 100vh; height: 100svh; /* Mobile viewport fix */
+        height: 100vh; height: 100svh;
         user-select: none; touch-action: none;
     }
 
@@ -30,111 +30,87 @@
         width: 100%; height: 100%; 
         max-width: 1280px; max-height: 720px;
         background: #000; 
-        box-shadow: 0 0 100px rgba(0, 243, 255, 0.1);
+        box-shadow: 0 0 100px rgba(0, 243, 255, 0.15);
         overflow: hidden;
     }
     
     canvas { display: block; width: 100%; height: 100%; image-rendering: auto; }
 
-    /* HUD LAYER */
+    /* HUD */
     #ui-layer {
         position: absolute; inset: 0; pointer-events: none; padding: 15px;
         display: flex; flex-direction: column; justify-content: space-between; z-index: 10;
     }
-    
-    .hud-top { 
-        display: flex; justify-content: space-between; align-items: flex-start;
-        width: 100%;
-    }
-    
+    .hud-top { display: flex; justify-content: space-between; width: 100%; }
     .stat-panel {
         background: var(--hud-bg); 
         border: 1px solid rgba(255,255,255,0.2);
         padding: 10px 15px; border-radius: 6px;
-        backdrop-filter: blur(4px);
-        min-width: 140px;
+        backdrop-filter: blur(4px); min-width: 140px;
     }
-
     .hp-container { font-size: 1.5rem; letter-spacing: 2px; color: var(--danger); text-shadow: 0 0 10px var(--danger); margin-bottom: 5px; }
     .score-txt { font-size: 1rem; color: #fff; font-family: 'Share Tech Mono'; }
-    .score-val { color: var(--primary); font-weight: bold; }
-
     .bar-label { font-size: 0.7rem; color: #aaa; margin-top: 5px; display: flex; justify-content: space-between; }
     .progress-track { width: 100%; height: 6px; background: #222; border: 1px solid #444; margin-top: 2px; border-radius: 2px; overflow: hidden; }
     .progress-fill { height: 100%; width: 100%; transition: width 0.1s linear; }
 
-    /* MOBILE CONTROLS - FIXED POSITIONING & Z-INDEX BOOST */
+    /* MOBILE CONTROLS */
     #mobile-controls {
-        position: absolute; inset: 0; pointer-events: none; z-index: 50; display: none;
+        position: absolute; inset: 0; pointer-events: auto; z-index: 20; display: none;
     }
     
-    .control-cluster {
-        position: absolute; pointer-events: auto; display: flex; gap: 20px;
+    /* Swipe Area */
+    #swipe-zone {
+        position: absolute; left: 0; top: 0; width: 50%; height: 100%;
+        /* background: rgba(255,0,0,0.1); Debugging */
     }
-    /* Moved up slightly to avoid bottom bezel overlap */
-    .left-cluster { bottom: 40px; left: 30px; }
-    .right-cluster { bottom: 40px; right: 30px; align-items: flex-end; }
+    #swipe-hint {
+        position: absolute; bottom: 50px; left: 50px; 
+        color: rgba(255,255,255,0.3); font-size: 14px; pointer-events: none;
+    }
 
-    /* BUTTON STYLES */
+    /* Buttons (Only Fire and Jump) */
+    .control-cluster { position: absolute; bottom: 40px; right: 40px; display: flex; gap: 20px; align-items: flex-end; pointer-events: auto; }
+    
     .btn {
-        width: 75px; height: 75px; border-radius: 50%;
-        background: rgba(255, 255, 255, 0.1); 
-        border: 2px solid rgba(255,255,255,0.4);
-        color: white; font-size: 28px; 
-        display: flex; justify-content: center; align-items: center;
-        backdrop-filter: blur(8px);
-        box-shadow: 0 4px 15px rgba(0,0,0,0.6);
-        transition: transform 0.1s, background 0.1s;
-        touch-action: none;
+        width: 80px; height: 80px; border-radius: 50%;
+        background: rgba(255, 255, 255, 0.1); border: 2px solid rgba(255,255,255,0.3);
+        color: white; font-size: 30px; display: flex; justify-content: center; align-items: center;
+        backdrop-filter: blur(5px); box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+        transition: transform 0.1s; touch-action: none;
     }
     .btn:active { transform: scale(0.9); background: rgba(0, 243, 255, 0.3); border-color: var(--primary); }
-    
-    .btn-fire { border-color: var(--danger); color: var(--danger); width: 85px; height: 85px; margin-right: 15px; margin-bottom: 10px;}
-    .btn-jump { border-color: var(--primary); color: var(--primary); width: 95px; height: 95px; font-size: 36px; }
-    .btn-up { 
-        position: absolute; bottom: 120px; right: 10px; 
-        width: 65px; height: 65px; border-color: #fff; color: #fff; 
-        background: rgba(255,255,255,0.2);
-    }
+    .btn-fire { border-color: var(--danger); color: var(--danger); width: 85px; height: 85px; margin-bottom: 10px; }
+    .btn-jump { border-color: var(--primary); color: var(--primary); width: 100px; height: 100px; font-size: 40px; }
 
     /* MENUS */
     #menu-overlay {
-        position: absolute; inset: 0; background: rgba(0,0,0,0.92);
+        position: absolute; inset: 0; background: rgba(0,0,0,0.95);
         display: flex; flex-direction: column; justify-content: center; align-items: center;
         z-index: 100; text-align: center;
     }
-    
     h1 {
         font-family: 'Black Ops One'; font-size: 3.5rem; margin: 0;
         background: linear-gradient(180deg, #fff, #888);
         -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         filter: drop-shadow(0 0 20px var(--primary));
     }
-    
     .menu-panel {
         border: 1px solid var(--primary); padding: 30px;
-        background: rgba(0, 20, 20, 0.6);
-        box-shadow: 0 0 50px rgba(0,243,255,0.1);
-        max-width: 90%;
+        background: rgba(0, 20, 20, 0.8);
+        box-shadow: 0 0 50px rgba(0,243,255,0.1); max-width: 90%;
     }
-
     .start-btn {
         display: block; width: 100%; margin: 10px 0;
         padding: 15px; font-family: 'Orbitron'; font-size: 1.2rem; font-weight: 900;
         background: var(--danger); border: none; color: white;
         cursor: pointer; clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
     }
-    .start-btn:hover { filter: brightness(1.2); }
     .btn-mobile { background: var(--warn); color: #000; }
-
     .hidden { display: none !important; }
     
-    /* ROTATION WARNING */
     @media (orientation: portrait) {
-        #menu-overlay::before {
-            content: "⚠️ ROTATE DEVICE FOR BEST EXPERIENCE";
-            display: block; margin-bottom: 20px; color: var(--warn); font-size: 0.9rem;
-        }
+        #menu-overlay::before { content: "⚠️ ROTATE DEVICE"; display: block; margin-bottom: 20px; color: var(--warn); }
     }
 </style>
 </head>
@@ -147,12 +123,11 @@
         <div class="hud-top">
             <div class="stat-panel">
                 <div class="hp-container" id="hud-hp">❤❤❤</div>
-                <div class="score-txt">SCORE: <span class="score-val" id="hud-score">0</span></div>
+                <div class="score-txt">SCORE: <span style="color:var(--primary)" id="hud-score">0</span></div>
             </div>
             <div class="stat-panel" style="text-align: right;">
-                <div class="bar-label"><span>PLASMA</span> <span id="hud-ammo-txt">12/12</span></div>
+                <div class="bar-label"><span>PLASMA</span> <span id="hud-ammo-txt">12</span></div>
                 <div class="progress-track"><div class="progress-fill" id="hud-ammo-bar" style="background:var(--warn)"></div></div>
-                
                 <div class="bar-label"><span>JET FUEL</span></div>
                 <div class="progress-track"><div class="progress-fill" id="hud-fuel-bar" style="background:var(--primary)"></div></div>
             </div>
@@ -160,12 +135,9 @@
     </div>
 
     <div id="mobile-controls">
-        <div class="control-cluster left-cluster">
-            <div class="btn" id="btn-left">←</div>
-            <div class="btn" id="btn-right">→</div>
-        </div>
-        <div class="control-cluster right-cluster">
-            <div class="btn btn-up" id="btn-up">↑</div>
+        <div id="swipe-zone"></div>
+        <div id="swipe-hint">SWIPE TO MOVE ↔</div>
+        <div class="control-cluster">
             <div class="btn btn-fire" id="btn-fire">🔥</div>
             <div class="btn btn-jump" id="btn-jump">🚀</div>
         </div>
@@ -174,629 +146,431 @@
     <div id="menu-overlay">
         <div class="menu-panel">
             <h1>OMNIVERSE</h1>
-            <p style="color:var(--primary); font-size: 0.9rem; letter-spacing: 4px; margin-bottom: 30px;">HARDCORE EDITION</p>
-            
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:20px;">
-                <button class="start-btn" onclick="GAME.start(false)">PLAY PC</button>
-                <button class="start-btn btn-mobile" onclick="GAME.start(true)">PLAY MOBILE</button>
-            </div>
-            <div style="color:#666; font-size: 0.8rem;">
-                CONTROLS: ARROWS + SPACE + F <br>
-                FEATURES: JETPACK HOVER, AUTO-RELOAD, BOSSES
+            <p style="color:var(--primary); font-size: 0.9rem; letter-spacing: 4px; margin-bottom: 30px;">ULTIMATE EDITION</p>
+            <button class="start-btn" onclick="GAME.start(false)">PLAY PC</button>
+            <button class="start-btn btn-mobile" onclick="GAME.start(true)">PLAY MOBILE</button>
+            <div style="color:#666; font-size: 0.8rem; margin-top:15px;">
+                PC: ARROWS + SPACE + F<br>
+                MOBILE: SWIPE LEFT/RIGHT + BUTTONS
             </div>
         </div>
     </div>
 </div>
 
 <script>
-/**
- * ============================================================================
- * 1000+ LOGIC DEPTH: MODULAR ARCHITECTURE
- * ============================================================================
- */
-
-/* --- AUDIO MANAGER --- */
+/** SYSTEM: AUDIO */
 const AudioSys = {
     ctx: null,
     init: function() {
         if(!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
         if(this.ctx.state === 'suspended') this.ctx.resume();
     },
-    playTone: function(type) {
+    play: function(type) {
         if(!this.ctx) return;
         const t = this.ctx.currentTime;
         const o = this.ctx.createOscillator();
         const g = this.ctx.createGain();
         o.connect(g); g.connect(this.ctx.destination);
-
-        if(type === 'shoot') {
-            o.type = 'square'; o.frequency.setValueAtTime(400, t); 
-            o.frequency.exponentialRampToValueAtTime(100, t + 0.1);
-            g.gain.setValueAtTime(0.05, t); g.gain.linearRampToValueAtTime(0, t + 0.1);
-            o.start(t); o.stop(t + 0.1);
-        } else if (type === 'jump') {
-            o.type = 'sine'; o.frequency.setValueAtTime(200, t);
-            o.frequency.linearRampToValueAtTime(400, t + 0.15);
-            g.gain.setValueAtTime(0.1, t); g.gain.linearRampToValueAtTime(0, t + 0.15);
-            o.start(t); o.stop(t + 0.15);
-        } else if (type === 'rocket') {
-            o.type = 'sawtooth'; o.frequency.setValueAtTime(100, t);
-            g.gain.setValueAtTime(0.05, t); g.gain.exponentialRampToValueAtTime(0.01, t + 0.5);
-            o.start(t); o.stop(t + 0.5);
-        } else if (type === 'explosion') {
-            o.type = 'sawtooth'; o.frequency.setValueAtTime(100, t);
-            o.frequency.exponentialRampToValueAtTime(10, t + 0.3);
-            g.gain.setValueAtTime(0.2, t); g.gain.linearRampToValueAtTime(0, t + 0.3);
-            o.start(t); o.stop(t + 0.3);
+        
+        if(type==='shoot') {
+            o.type='square'; o.frequency.setValueAtTime(400,t); o.frequency.exponentialRampToValueAtTime(100,t+0.1);
+            g.gain.setValueAtTime(0.05,t); g.gain.linearRampToValueAtTime(0,t+0.1);
+            o.start(t); o.stop(t+0.1);
+        } else if(type==='jump') {
+            o.type='sine'; o.frequency.setValueAtTime(200,t); o.frequency.linearRampToValueAtTime(400,t+0.15);
+            g.gain.setValueAtTime(0.1,t); g.gain.linearRampToValueAtTime(0,t+0.15);
+            o.start(t); o.stop(t+0.15);
+        } else if(type==='explosion') {
+            o.type='sawtooth'; o.frequency.setValueAtTime(100,t); o.frequency.exponentialRampToValueAtTime(10,t+0.3);
+            g.gain.setValueAtTime(0.2,t); g.gain.linearRampToValueAtTime(0,t+0.3);
+            o.start(t); o.stop(t+0.3);
         }
     }
 };
 
-/* --- INPUT HANDLER --- */
+/** SYSTEM: INPUT (Keyboard + Swipe + Buttons) */
 const Input = {
-    keys: { Up: false, Down: false, Left: false, Right: false, Jump: false, Fire: false },
-    touchactive: false,
+    keys: { Left: false, Right: false, Jump: false, Fire: false },
+    touchStartX: 0,
     
     init: function() {
-        window.addEventListener('keydown', e => this.handleKey(e.code, true));
-        window.addEventListener('keyup', e => this.handleKey(e.code, false));
+        window.addEventListener('keydown', e => this.key(e.code, true));
+        window.addEventListener('keyup', e => this.key(e.code, false));
         
-        // Mobile Bindings with Passive False for Chrome Fix
-        this.bindTouch('btn-left', 'Left');
-        this.bindTouch('btn-right', 'Right');
-        this.bindTouch('btn-up', 'Up'); // Jetpack Hover Input
-        this.bindTouch('btn-jump', 'Jump');
-        this.bindTouch('btn-fire', 'Fire');
+        // Buttons
+        this.bindBtn('btn-fire', 'Fire');
+        this.bindBtn('btn-jump', 'Jump');
+        
+        // Swipe Logic
+        const zone = document.getElementById('swipe-zone');
+        zone.addEventListener('touchstart', e => {
+            e.preventDefault();
+            this.touchStartX = e.touches[0].clientX;
+        }, {passive:false});
+        
+        zone.addEventListener('touchmove', e => {
+            e.preventDefault();
+            const diff = e.touches[0].clientX - this.touchStartX;
+            if(diff < -20) { this.keys.Left = true; this.keys.Right = false; }
+            else if(diff > 20) { this.keys.Right = true; this.keys.Left = false; }
+            else { this.keys.Left = false; this.keys.Right = false; }
+        }, {passive:false});
+        
+        zone.addEventListener('touchend', e => {
+            e.preventDefault();
+            this.keys.Left = false; this.keys.Right = false;
+        }, {passive:false});
     },
     
-    handleKey: function(code, state) {
-        if(code === 'ArrowUp') this.keys.Up = state;
-        if(code === 'ArrowDown') this.keys.Down = state;
-        if(code === 'ArrowLeft') this.keys.Left = state;
-        if(code === 'ArrowRight') this.keys.Right = state;
-        if(code === 'Space') this.keys.Jump = state;
-        if(code === 'KeyF') { if(state && !this.keys.Fire) GAME.player.shoot(); this.keys.Fire = state; }
+    key: function(c, s) {
+        if(c==='ArrowLeft') this.keys.Left = s;
+        if(c==='ArrowRight') this.keys.Right = s;
+        if(c==='Space' || c==='ArrowUp') this.keys.Jump = s; // Map Space/Up to Jump logic
+        if(c==='KeyF') { if(s && !this.keys.Fire) GAME.player.shoot(); this.keys.Fire = s; }
     },
     
-    bindTouch: function(id, key) {
+    bindBtn: function(id, k) {
         const el = document.getElementById(id);
-        if(!el) return;
-        el.addEventListener('touchstart', (e) => { 
+        el.addEventListener('touchstart', e => { 
             e.preventDefault(); 
-            this.keys[key] = true;
-            if(key === 'Fire') GAME.player.shoot();
-            if(key === 'Jump') GAME.player.jump();
-        }, {passive: false});
-        el.addEventListener('touchend', (e) => { 
-            e.preventDefault(); 
-            this.keys[key] = false; 
-        }, {passive: false});
+            this.keys[k] = true; 
+            if(k==='Jump') GAME.player.tapJump(); // Tap logic
+            if(k==='Fire') GAME.player.shoot();
+        }, {passive:false});
+        el.addEventListener('touchend', e => { e.preventDefault(); this.keys[k] = false; }, {passive:false});
     }
 };
 
-/* --- ENTITY CLASSES --- */
+/** ENTITIES */
 class Particle {
-    constructor(x, y, color, speed, life, type) {
-        this.x = x; this.y = y; this.color = color;
-        this.vx = (Math.random() - 0.5) * speed;
-        this.vy = (Math.random() - 0.5) * speed;
-        this.life = life; this.maxLife = life;
-        this.type = type || 'dust';
-    }
-    update() {
-        this.x += this.vx; this.y += this.vy;
-        this.life--;
-        if(this.type === 'smoke') this.vy -= 0.1; // Smoke rises
-    }
-    draw(ctx) {
-        ctx.globalAlpha = this.life / this.maxLife;
-        ctx.fillStyle = this.color;
-        const s = (this.type === 'fire') ? Math.random() * 5 + 2 : 3;
-        ctx.fillRect(this.x, this.y, s, s);
-        ctx.globalAlpha = 1;
-    }
+    constructor(x,y,c,s,l) { this.x=x;this.y=y;this.c=c;this.vx=(Math.random()-.5)*s;this.vy=(Math.random()-.5)*s;this.l=l;this.ml=l; }
+    update() { this.x+=this.vx; this.y+=this.vy; this.l--; }
+    draw(ctx) { ctx.globalAlpha=this.l/this.ml; ctx.fillStyle=this.c; ctx.fillRect(this.x,this.y,3,3); ctx.globalAlpha=1; }
 }
 
 class FloatingText {
-    constructor(x, y, text, color) {
-        this.x = x; this.y = y; this.text = text; this.color = color;
-        this.life = 60; this.vy = -1;
+    constructor(x,y,t,c) { this.x=x;this.y=y;this.t=t;this.c=c;this.l=60; }
+    update() { this.y-=1; this.l--; }
+    draw(ctx) { ctx.globalAlpha=this.l/60; ctx.fillStyle=this.c; ctx.font="bold 16px 'Orbitron'"; ctx.fillText(this.t,this.x,this.y); ctx.globalAlpha=1; }
+}
+
+class ParallaxObject {
+    constructor(type, y) {
+        this.type = type;
+        this.x = GAME.W + 100;
+        this.y = y;
+        this.dead = false;
     }
-    update() { this.y += this.vy; this.life--; }
+    update() {
+        this.x -= 2; // Slower than ground
+        if(this.x < -400) this.dead = true;
+    }
     draw(ctx) {
-        ctx.globalAlpha = Math.max(0, this.life / 60);
-        ctx.fillStyle = this.color; ctx.font = "bold 16px 'Orbitron'";
-        ctx.fillText(this.text, this.x, this.y);
-        ctx.globalAlpha = 1;
+        ctx.save(); ctx.translate(this.x, this.y);
+        if(this.type === 'hollywood') {
+            // Earth Theme: Hollywood Sign
+            ctx.fillStyle = "#fff"; ctx.font = "900 60px Arial"; 
+            ctx.shadowColor="black"; ctx.shadowBlur=10;
+            ctx.fillText("ABHIK DUTTA", 0, 0);
+            ctx.fillStyle="#555"; ctx.fillRect(0, 10, 450, 10); // Base
+        } else if (this.type === 'rocket') {
+            // Mars Theme: Rocket
+            ctx.rotate(-0.5);
+            ctx.fillStyle = "#ccc"; ctx.fillRect(0,0,100,30); // Body
+            ctx.fillStyle = "red"; ctx.beginPath(); ctx.moveTo(100,0); ctx.lineTo(130,15); ctx.lineTo(100,30); ctx.fill(); // Nose
+            ctx.fillStyle = "#00f3ff"; ctx.fillText("ABHIK", 10, 22);
+            // Flames
+            ctx.fillStyle = "orange"; ctx.beginPath(); ctx.moveTo(0,5); ctx.lineTo(-40,15); ctx.lineTo(0,25); ctx.fill();
+        } else if (this.type === 'shuttle') {
+            // Space/Matrix Theme
+            ctx.fillStyle = "#222"; ctx.fillRect(0,0,120,40);
+            ctx.fillStyle = "#0f0"; ctx.font="20px monospace"; ctx.fillText("ALIEN_SHIP_01", 5, 25);
+            ctx.strokeStyle = "#0f0"; ctx.strokeRect(0,0,120,40);
+        } else if (this.type === 'billboard') {
+            // Neon Theme
+            ctx.fillStyle = "#000"; ctx.fillRect(0,0,300,80);
+            ctx.strokeStyle = "#f0f"; ctx.lineWidth=4; ctx.strokeRect(0,0,300,80);
+            ctx.fillStyle = "#0ff"; ctx.font="30px Orbitron"; ctx.fillText("ABHIK DUTTA", 20, 50);
+        }
+        ctx.restore();
     }
 }
 
 class Bullet {
-    constructor(x, y, vx, owner) {
-        this.x = x; this.y = y; this.vx = vx;
-        this.w = 15; this.h = 5;
-        this.owner = owner; // 'player' or 'enemy'
-        this.dead = false;
-        
-        // Backfire Rocket visuals
-        if(owner === 'enemy') { 
-            this.w = 20; this.h = 10; 
-            AudioSys.playTone('rocket');
-        }
+    constructor(x,y,vx,o) { this.x=x;this.y=y;this.vx=vx;this.o=o;this.dead=false; this.w=15; this.h=5; }
+    update() { 
+        this.x+=this.vx; if(this.x<-50||this.x>GAME.W+50) this.dead=true; 
+        if(this.o==='enemy') GAME.spawnPart(this.x+20,this.y+5,'#f00',1,5);
     }
-    update() {
-        this.x += this.vx;
-        if(this.owner === 'enemy') {
-            GAME.spawnParticle(this.x + 20, this.y + 5, '#f00', 2, 10, 'fire');
-        }
-        if(this.x < -50 || this.x > GAME.W + 50) this.dead = true;
-    }
-    draw(ctx) {
-        if(this.owner === 'player') {
-            ctx.fillStyle = '#00f3ff';
-            ctx.fillRect(this.x, this.y, this.w, this.h);
-        } else {
-            // Rocket Visual
-            ctx.fillStyle = '#ff0000';
-            ctx.beginPath(); ctx.moveTo(this.x, this.y);
-            ctx.lineTo(this.x+this.w, this.y+this.h/2);
-            ctx.lineTo(this.x, this.y+this.h); ctx.fill();
-        }
+    draw(ctx) { 
+        ctx.fillStyle = this.o==='player'?'#0ff':'#f00'; 
+        if(this.o==='enemy') { ctx.beginPath(); ctx.moveTo(this.x,this.y); ctx.lineTo(this.x+20,this.y+5); ctx.lineTo(this.x,this.y+10); ctx.fill(); }
+        else ctx.fillRect(this.x,this.y,this.w,this.h); 
     }
 }
 
 class Player {
     constructor() {
-        this.w = 40; this.h = 50;
-        this.x = 100; this.y = 0;
-        this.vx = 0; this.vy = 0;
-        this.hp = 3; 
-        this.fuel = 100; this.maxFuel = 100;
-        this.ammo = 12; this.maxAmmo = 12;
-        this.reloadTimer = 0;
-        this.grounded = false;
-        this.invuln = 0;
+        this.x=100; this.y=0; this.w=40; this.h=50; this.vx=0; this.vy=0;
+        this.hp=3; this.fuel=100; this.ammo=12; this.jumpCount=0; this.grounded=false; this.invuln=0;
+        this.reloadTimer=0;
     }
-    
     update() {
-        // Horizontal Movement
-        if(Input.keys.Left) this.vx = -6;
-        else if(Input.keys.Right) this.vx = 6;
-        else this.vx *= 0.8;
+        // Move
+        if(Input.keys.Left) this.vx = -6; else if(Input.keys.Right) this.vx = 6; else this.vx *= 0.8;
+        this.x = Math.max(0, Math.min(GAME.W-this.w, this.x+this.vx));
         
-        this.x += this.vx;
-        this.x = Math.max(0, Math.min(GAME.W - this.w, this.x));
-        
-        // JETPACK PHYSICS (Hovering)
-        // If holding UP and has fuel, apply upward force
-        if(Input.keys.Up && this.fuel > 0) {
-            this.vy -= 0.8; // Thrust
-            this.fuel -= 1.2; // Consumption
-            this.grounded = false;
-            // Particles
-            GAME.spawnParticle(this.x + 10, this.y + 40, '#00f3ff', 4, 15, 'smoke');
-            GAME.spawnParticle(this.x + 30, this.y + 40, '#00f3ff', 4, 15, 'smoke');
-        } else if (this.grounded && this.fuel < this.maxFuel) {
-            this.fuel += 0.8; // Refuel on ground
-        }
-        
+        // Jetpack (Hold Jump)
+        // If holding Jump AND in air AND fuel > 0 -> Jetpack
+        // (Assuming jump key is held)
+        if(Input.keys.Jump && !this.grounded && this.fuel>0) {
+            this.vy -= 0.8; this.fuel -= 1.5;
+            GAME.spawnPart(this.x+10, this.y+45, '#0ff', 2, 10);
+        } else if(this.grounded && this.fuel<100) this.fuel += 0.8;
+
         // Gravity
-        this.vy += GAME.Gravity;
-        this.y += this.vy;
-        
-        // Ground Collision
-        if(this.y + this.h > GAME.GroundY) {
-            this.y = GAME.GroundY - this.h;
-            this.vy = 0;
-            this.grounded = true;
-        } else {
-            this.grounded = false;
-        }
-        
-        // AUTO RELOAD
-        if(this.ammo < this.maxAmmo) {
+        this.vy += GAME.Gravity; this.y += this.vy;
+        if(this.y+this.h > GAME.GroundY) { this.y=GAME.GroundY-this.h; this.vy=0; this.grounded=true; this.jumpCount=0; } 
+        else this.grounded=false;
+
+        // Auto Reload
+        if(this.ammo < 12) {
             this.reloadTimer++;
-            if(this.reloadTimer > 45) { // ~0.75 seconds
-                this.ammo++;
-                this.reloadTimer = 0;
-            }
+            if(this.reloadTimer > 45) { this.ammo++; this.reloadTimer=0; }
         }
-        
-        if(this.invuln > 0) this.invuln--;
-        this.updateHUD();
+        if(this.invuln>0) this.invuln--;
+        this.hud();
     }
     
-    jump() {
-        if(this.grounded) {
-            this.vy = -14;
+    // Triggered on KeyDown/TouchStart
+    tapJump() {
+        // Double Jump Logic (No fuel cost for impulse)
+        if(this.grounded || this.jumpCount < 2) {
+            this.vy = -13; 
+            this.jumpCount++;
             this.grounded = false;
-            AudioSys.playTone('jump');
-            GAME.spawnParticle(this.x+20, this.y+50, '#fff', 5, 20, 'dust');
+            AudioSys.play('jump');
+            GAME.spawnPart(this.x+20, this.y+50, '#fff', 5, 20);
         }
     }
-    
+
     shoot() {
-        if(this.ammo > 0) {
-            this.ammo--;
-            this.reloadTimer = 0; // Reset reload delay
-            GAME.bullets.push(new Bullet(this.x + 40, this.y + 15, 15, 'player'));
-            AudioSys.playTone('shoot');
-        } else {
-            // Click empty sound?
+        if(this.ammo>0) {
+            this.ammo--; this.reloadTimer=0;
+            GAME.bullets.push(new Bullet(this.x+40, this.y+15, 15, 'player'));
+            AudioSys.play('shoot');
         }
     }
     
-    hit(dmg) {
-        if(this.invuln > 0) return;
-        this.hp -= dmg;
-        this.invuln = 60;
-        AudioSys.playTone('explosion');
-        GAME.shake = 10;
-        GAME.texts.push(new FloatingText(this.x, this.y, "-1 HP", "#f00"));
-        if(this.hp <= 0) GAME.gameOver();
+    hit(d) {
+        if(this.invuln>0) return;
+        this.hp-=d; this.invuln=60; GAME.shake=10; AudioSys.play('explosion');
+        if(this.hp<=0) GAME.over();
     }
     
-    updateHUD() {
-        document.getElementById('hud-hp').innerText = "❤".repeat(Math.max(0, this.hp));
-        document.getElementById('hud-score').innerText = GAME.score;
-        document.getElementById('hud-ammo-txt').innerText = `${this.ammo}/${this.maxAmmo}`;
-        document.getElementById('hud-ammo-bar').style.width = (this.ammo/this.maxAmmo*100) + "%";
-        document.getElementById('hud-fuel-bar').style.width = Math.max(0, this.fuel) + "%";
+    hud() {
+        document.getElementById('hud-hp').innerText="❤".repeat(Math.max(0,this.hp));
+        document.getElementById('hud-score').innerText=GAME.score;
+        document.getElementById('hud-ammo-bar').style.width=(this.ammo/12*100)+"%";
+        document.getElementById('hud-fuel-bar').style.width=this.fuel+"%";
+        document.getElementById('hud-ammo-txt').innerText=this.ammo;
     }
     
     draw(ctx) {
-        if(this.invuln > 0 && Math.floor(Date.now()/50)%2===0) return;
-        
-        // Character Body
-        ctx.fillStyle = '#fff';
-        ctx.fillRect(this.x, this.y, this.w, this.h);
-        
-        // Visor
-        ctx.fillStyle = '#333';
-        ctx.fillRect(this.x + 20, this.y + 10, 20, 10);
-        
-        // Jetpack
-        ctx.fillStyle = '#555';
-        ctx.fillRect(this.x - 5, this.y + 10, 10, 30);
-        if(this.fuel < 20) { ctx.fillStyle = '#f00'; ctx.fillRect(this.x-2, this.y+12, 4, 4); }
+        if(this.invuln>0 && Math.floor(GAME.frames/5)%2) return;
+        ctx.fillStyle='#fff'; ctx.fillRect(this.x, this.y, this.w, this.h); // Body
+        ctx.fillStyle='#333'; ctx.fillRect(this.x+20, this.y+10, 20, 10); // Visor
+        // LEGS (Fix 2: clearly visible)
+        ctx.fillStyle='#999'; 
+        let ly = this.grounded ? 0 : 5;
+        ctx.fillRect(this.x+5, this.y+40, 10, 10+ly); 
+        ctx.fillRect(this.x+25, this.y+40, 10, 10-ly);
     }
 }
 
 class Enemy {
-    constructor(type) {
-        this.type = type;
-        this.dead = false;
-        this.x = GAME.W + 50;
-        this.w = 40; this.h = 40;
-        this.vx = -3 - (GAME.level * 0.5);
-        this.hp = 1;
-        this.timer = 0;
-        
-        // ENEMY TYPES CONFIG
-        switch(type) {
-            case 'dragon': // Red Dragon (Boss-like)
-                this.y = 50 + Math.random() * 200;
-                this.w = 100; this.h = 60;
-                this.hp = 6; // Double power/Health
-                this.vx = -4;
-                break;
-                
-            case 'traitor': // Backfire enemy
-                this.y = GAME.GroundY - 50;
-                this.w = 40; this.h = 50;
-                this.hp = 2;
-                this.hasFired = false;
-                break;
-                
-            case 'ufo': // Vertical Aliens
-                this.y = 100;
-                this.w = 50; this.h = 30;
-                this.baseY = this.y;
-                break;
-                
-            case 'tnt': // TNT Bombs
-                this.y = GAME.GroundY - 30;
-                this.w = 30; this.h = 30;
-                this.vx = -7; // Fast
-                break;
-                
-            default: // Basic
-                this.y = GAME.GroundY - 40;
-                break;
-        }
+    constructor(t) {
+        this.t=t; this.dead=false; this.x=GAME.W+50; this.w=40; this.h=40; this.hp=1; this.tm=0;
+        if(t==='dragon') { this.y=50+Math.random()*150; this.w=100; this.h=60; this.hp=6; }
+        else if(t==='traitor') { this.y=GAME.GroundY-50; this.h=50; this.hp=2; this.fired=false; }
+        else if(t==='ufo') { this.y=100; this.w=50; this.h=30; }
+        else if(t==='tnt') { this.y=GAME.GroundY-30; this.w=30; this.h=30; }
+        else this.y=GAME.GroundY-40;
     }
-    
     update() {
-        this.x += this.vx;
-        this.timer++;
+        this.x -= (3 + GAME.level*0.5); this.tm++;
+        if(this.t==='dragon') this.y += Math.sin(this.tm*0.05)*2;
+        if(this.t==='ufo') this.y += Math.sin(this.tm*0.1)*4;
         
-        // Specific Behaviors
-        if(this.type === 'dragon') {
-            // Flying Sine Wave
-            this.y += Math.sin(this.timer * 0.05) * 2;
-        } 
-        else if (this.type === 'ufo') {
-            // Vertical movement
-            this.y += Math.sin(this.timer * 0.1) * 4;
-            if(this.timer % 100 === 0) { /* Alien Shoot logic could go here */ }
-        }
-        else if (this.type === 'traitor') {
-            // Backfire Logic: Fire rocket when player is in range
-            if(!this.hasFired && this.x < GAME.W - 100) {
-                GAME.bullets.push(new Bullet(this.x, this.y + 20, -10, 'enemy'));
-                this.hasFired = true;
-                GAME.texts.push(new FloatingText(this.x, this.y - 20, "!", "#f00"));
-            }
+        // Traitor Logic
+        if(this.t==='traitor' && !this.fired && this.x < GAME.W-150) {
+            GAME.bullets.push(new Bullet(this.x, this.y+20, -9, 'enemy')); this.fired=true;
+            GAME.texts.push(new FloatingText(this.x,this.y-20,"!", "#f00"));
         }
         
-        if(this.x < -150) this.dead = true;
+        if(this.x<-150) this.dead=true;
         
         // Player Collision
-        if(this.rectIntersect(GAME.player)) {
+        if(!this.dead && this.hit(GAME.player)) {
             GAME.player.hit(1);
-            if(this.type === 'tnt') { 
-                this.dead = true; // Explode on impact
-                GAME.spawnParticle(this.x, this.y, '#f00', 10, 20, 'fire');
-            }
+            if(this.t==='tnt') { this.dead=true; GAME.spawnPart(this.x,this.y,'#f00',20,30); }
         }
     }
     
-    takeDamage() {
-        this.hp--;
-        GAME.spawnParticle(this.x + this.w/2, this.y + this.h/2, '#fff', 3, 5);
-        if(this.hp <= 0) {
-            this.dead = true;
-            GAME.score += (this.type==='dragon'?500 : 100);
-            GAME.spawnParticle(this.x, this.y, this.type==='tnt'?'#f00':'#ffcc00', 15, 30, 'fire');
-            AudioSys.playTone('explosion');
-            GAME.texts.push(new FloatingText(this.x, this.y, "+" + (this.type==='dragon'?500:100), "#ff0"));
-        } else {
-            GAME.texts.push(new FloatingText(this.x, this.y, "HIT", "#fff"));
+    // TNT FIX: "Burst from distance" means bullet destroys it safely
+    takeDmg() {
+        this.hp--; GAME.spawnPart(this.x+20,this.y+20,'#fff',3,5);
+        if(this.hp<=0) {
+            this.dead=true; GAME.score += (this.t==='dragon'?500:100);
+            GAME.spawnPart(this.x,this.y,this.t==='tnt'?'#f00':'#fc0', 20, 20);
+            AudioSys.play('explosion');
         }
     }
     
-    rectIntersect(p) {
-        return (this.x < p.x + p.w && this.x + this.w > p.x &&
-                this.y < p.y + p.h && this.y + this.h > p.y);
-    }
+    hit(p) { return this.x < p.x+p.w && this.x+this.w > p.x && this.y < p.y+p.h && this.y+this.h > p.y; }
     
     draw(ctx) {
-        if(this.type === 'dragon') {
-            ctx.fillStyle = '#8b0000';
-            // Dragon Body
-            ctx.beginPath(); ctx.ellipse(this.x+50, this.y+30, 50, 25, 0, 0, Math.PI*2); ctx.fill();
-            // Wing
-            ctx.fillStyle = '#ff0000';
-            ctx.beginPath(); ctx.moveTo(this.x+50, this.y+10); ctx.lineTo(this.x+20, this.y-40); ctx.lineTo(this.x+80, this.y+10); ctx.fill();
-            // Head
-            ctx.fillStyle = '#000'; ctx.fillRect(this.x, this.y+15, 10, 10);
+        if(this.t==='dragon') { // FIX 4: Wings
+            ctx.fillStyle='#800'; ctx.beginPath(); ctx.ellipse(this.x+50,this.y+30,50,25,0,0,Math.PI*2); ctx.fill();
+            ctx.fillStyle='#f00'; ctx.beginPath(); ctx.moveTo(this.x+50,this.y+10); ctx.lineTo(this.x+30,this.y-50); ctx.lineTo(this.x+90,this.y+10); ctx.fill();
+            ctx.fillStyle='#000'; ctx.fillRect(this.x,this.y+20,10,10);
+        } else if(this.t==='tnt') {
+            ctx.fillStyle='#000'; ctx.beginPath(); ctx.arc(this.x+15,this.y+15,15,0,Math.PI*2); ctx.fill();
+            ctx.fillStyle='#f00'; ctx.font="10px Arial"; ctx.fillText("TNT",this.x+5,this.y+20);
+        } else if(this.t==='ufo') {
+            ctx.fillStyle='#0f0'; ctx.beginPath(); ctx.arc(this.x+25,this.y+15,15,Math.PI,0); ctx.fill();
+            ctx.fillStyle='#555'; ctx.beginPath(); ctx.ellipse(this.x+25,this.y+20,25,8,0,0,Math.PI*2); ctx.fill();
+        } else if(this.t==='traitor') {
+            ctx.fillStyle='#444'; ctx.fillRect(this.x,this.y,this.w,this.h);
+            ctx.fillStyle='#ff0'; ctx.fillRect(this.x+10,this.y+10,20,20);
+        } else {
+            ctx.fillStyle='#c0c'; ctx.fillRect(this.x,this.y,this.w,this.h);
         }
-        else if(this.type === 'ufo') {
-            ctx.fillStyle = '#0f0';
-            ctx.beginPath(); ctx.arc(this.x+25, this.y+15, 15, Math.PI, 0); ctx.fill();
-            ctx.fillStyle = '#888';
-            ctx.beginPath(); ctx.ellipse(this.x+25, this.y+20, 25, 8, 0, 0, Math.PI*2); ctx.fill();
-        }
-        else if(this.type === 'tnt') {
-            ctx.fillStyle = '#000';
-            ctx.beginPath(); ctx.arc(this.x+15, this.y+15, 15, 0, Math.PI*2); ctx.fill();
-            ctx.fillStyle = '#f00'; ctx.font="10px Arial"; ctx.fillText("TNT", this.x+5, this.y+20);
-        }
-        else if(this.type === 'traitor') {
-            ctx.fillStyle = '#444'; ctx.fillRect(this.x, this.y, this.w, this.h);
-            ctx.fillStyle = '#ff0'; ctx.fillRect(this.x+10, this.y+10, 20, 20); // Yellow Core
-        }
-        else {
-            ctx.fillStyle = '#c0c'; ctx.fillRect(this.x, this.y, this.w, this.h);
-        }
-        
-        // HP Bar for bosses
-        if(this.hp > 1) {
-            ctx.fillStyle = 'red';
-            ctx.fillRect(this.x, this.y - 10, this.w * (this.hp/6), 4);
-        }
+        if(this.hp>1) { ctx.fillStyle='red'; ctx.fillRect(this.x,this.y-10,this.w*(this.hp/6),4); }
     }
 }
 
-/* --- MAIN GAME ENGINE --- */
+/** ENGINE */
 const GAME = {
-    canvas: document.getElementById('cvs'),
-    ctx: document.getElementById('cvs').getContext('2d'),
-    W: 1024, H: 576,
-    GroundY: 576 - 80,
-    Gravity: 0.6,
+    cvs: document.getElementById('cvs'), ctx: document.getElementById('cvs').getContext('2d'),
+    W: 1024, H: 576, GroundY: 576-80, Gravity: 0.6,
+    active: false, frames: 0, score: 0, level: 1, shake: 0,
+    player: null, ents: [], bulls: [], parts: [], txts: [], bg: [], parallax: [],
     
-    active: false,
-    level: 1,
-    score: 0,
-    frames: 0,
-    shake: 0,
-    
-    player: null,
-    entities: [],
-    bullets: [],
-    particles: [],
-    texts: [],
-    bgLayers: [],
-    
-    // Themes
-    themeIdx: 0,
+    // FIX 5: 4 Themes with Branding Objects
     themes: [
-        { sky:['#87CEEB','#E0F7FA'], ground:'#228B22' }, // Earth
-        { sky:['#4a0e0e','#1a0505'], ground:'#8B4513' }, // Mars
-        { sky:['#000','#001'], ground:'#333' }           // Space
+        {id:'earth', sky:['#87CEEB','#E0F7FA'], g:'#228B22', obj:'hollywood'},
+        {id:'mars',  sky:['#4a0e0e','#1a0505'], g:'#8B4513', obj:'rocket'},
+        {id:'matrix',sky:['#000','#001'],       g:'#003300', obj:'shuttle'},
+        {id:'neon',  sky:['#2c003e','#000'],    g:'#ff00ff', obj:'billboard'}
     ],
+    themeIdx: 0,
 
     init: function() {
-        this.resize();
-        window.addEventListener('resize', () => this.resize());
-        Input.init();
-        AudioSys.init();
-        
-        // Background Stars
-        for(let i=0; i<50; i++) {
-            this.bgLayers.push({
-                x: Math.random()*this.W, y: Math.random()*this.H,
-                size: Math.random()*2, speed: Math.random()*0.5 + 0.1
-            });
-        }
+        this.resize(); window.addEventListener('resize', ()=>this.resize());
+        Input.init(); 
+        // Logic for Jump Key:
+        // KeyDown -> Input.keys.Jump=true -> Tap logic handled in Player.update via key state? 
+        // No, we need distinct tap vs hold. 
+        // Input.key maps Space to keys.Jump.
+        // We add a listener for immediate jump
+        window.addEventListener('keydown', e => { if(e.code==='Space'||e.code==='ArrowUp') this.player.tapJump(); });
     },
+    resize: function() { this.cvs.width=this.W; this.cvs.height=this.H; },
     
-    resize: function() {
-        // Fit to container while maintaining aspect ratio approach if needed
-        this.canvas.width = this.W;
-        this.canvas.height = this.H;
-    },
-    
-    start: function(isMobile) {
-        this.active = true;
-        this.score = 0;
-        this.frames = 0;
-        this.player = new Player();
-        this.entities = [];
-        this.bullets = [];
-        this.particles = [];
-        this.texts = [];
-        this.level = 1;
-        
+    start: function(m) {
+        this.active=true; this.score=0; this.frames=0; this.level=1;
+        this.player = new Player(); this.ents=[]; this.bulls=[]; this.parts=[]; this.txts=[]; this.parallax=[];
+        this.bg = Array(50).fill().map(()=>({x:Math.random()*this.W, y:Math.random()*this.H, s:Math.random()*2}));
         document.getElementById('menu-overlay').classList.add('hidden');
-        if(isMobile) document.getElementById('mobile-controls').style.display = 'block';
-        
-        AudioSys.init();
-        this.loop();
+        if(m) document.getElementById('mobile-controls').style.display='block';
+        AudioSys.init(); this.loop();
     },
     
-    spawnParticle: function(x, y, c, s, l, t) {
-        this.particles.push(new Particle(x, y, c, s, l, t));
-    },
+    spawnPart: function(x,y,c,s,l) { this.parts.push(new Particle(x,y,c,s,l)); },
     
     update: function() {
         this.frames++;
         
-        // Spawning Logic
-        let spawnRate = Math.max(30, 100 - (this.level * 5));
-        if(this.frames % spawnRate === 0) {
-            let r = Math.random();
-            if(r < 0.15) this.entities.push(new Enemy('dragon'));
-            else if(r < 0.3) this.entities.push(new Enemy('ufo'));
-            else if(r < 0.5) this.entities.push(new Enemy('traitor'));
-            else if(r < 0.7) this.entities.push(new Enemy('tnt'));
-            else this.entities.push(new Enemy('basic'));
+        // Theme Cycle (20s @ 60fps = 1200 frames)
+        if(this.frames % 1200 === 0) {
+            this.themeIdx = (this.themeIdx + 1) % 4;
+            this.txts.push(new FloatingText(this.W/2, 200, "THEME SHIFT", "#fff"));
+        }
+        // Parallax Spawn (Branding)
+        if(this.frames % 1200 === 100) {
+            this.parallax.push(new ParallaxObject(this.themes[this.themeIdx].obj, 200));
         }
         
-        // Level Up
-        if(this.score > this.level * 1000) {
-            this.level++;
-            this.texts.push(new FloatingText(this.W/2, this.H/2, "LEVEL UP!", "#00f3ff"));
+        // Spawning
+        if(this.frames % Math.max(30, 100-this.level*5) === 0) {
+            let r=Math.random();
+            if(r<0.15) this.ents.push(new Enemy('dragon'));
+            else if(r<0.3) this.ents.push(new Enemy('ufo'));
+            else if(r<0.5) this.ents.push(new Enemy('traitor'));
+            else if(r<0.7) this.ents.push(new Enemy('tnt'));
+            else this.ents.push(new Enemy('basic'));
         }
-        
+        if(this.score > this.level*1000) { this.level++; this.txts.push(new FloatingText(this.W/2,300,"LEVEL UP!","#0ff")); }
+
         this.player.update();
         
-        // Entity Update
-        this.entities.forEach(e => e.update());
-        this.entities = this.entities.filter(e => !e.dead);
+        this.ents.forEach(e=>e.update()); this.ents=this.ents.filter(e=>!e.dead);
+        this.parallax.forEach(p=>p.update()); this.parallax=this.parallax.filter(p=>!p.dead);
         
-        // Bullet Update
-        this.bullets.forEach(b => {
+        this.bulls.forEach(b => {
             b.update();
-            // Bullet Collision
-            if(b.owner === 'player') {
-                this.entities.forEach(e => {
-                    if(!b.dead && !e.dead && e.rectIntersect(b)) {
-                        b.dead = true;
-                        e.takeDamage();
-                    }
-                });
-            } else if (b.owner === 'enemy') {
-                // Rocket hits player
-                if(!b.dead && b.x < this.player.x + this.player.w && b.x + b.w > this.player.x &&
-                   b.y < this.player.y + this.player.h && b.y + b.h > this.player.y) {
-                    b.dead = true;
-                    this.player.hit(1);
-                }
+            if(b.o==='player') {
+                this.ents.forEach(e => { if(!b.dead && !e.dead && e.hit(b)) { b.dead=true; e.takeDmg(); } });
+            } else {
+                if(!b.dead && this.player.hit(b)) { b.dead=true; this.player.hit(1); }
             }
         });
-        this.bullets = this.bullets.filter(b => !b.dead);
+        this.bulls=this.bulls.filter(b=>!b.dead);
         
-        // Particles
-        this.particles.forEach(p => p.update());
-        this.particles = this.particles.filter(p => p.life > 0);
-        
-        // Texts
-        this.texts.forEach(t => t.update());
-        this.texts = this.texts.filter(t => t.life > 0);
-        
-        // Screen Shake Decay
-        if(this.shake > 0) this.shake *= 0.9;
-        if(this.shake < 0.5) this.shake = 0;
+        this.parts.forEach(p=>p.update()); this.parts=this.parts.filter(p=>p.l>0);
+        this.txts.forEach(t=>t.update()); this.txts=this.txts.filter(t=>t.l>0);
+        if(this.shake>0) this.shake*=0.9; if(this.shake<0.5) this.shake=0;
     },
     
     draw: function() {
-        // Clear
-        this.ctx.fillStyle = '#000';
-        this.ctx.fillRect(0, 0, this.W, this.H);
-        
-        // Shake
+        this.ctx.fillStyle='#000'; this.ctx.fillRect(0,0,this.W,this.H);
         this.ctx.save();
-        if(this.shake > 0) {
-            let dx = (Math.random()-0.5)*this.shake;
-            let dy = (Math.random()-0.5)*this.shake;
-            this.ctx.translate(dx, dy);
-        }
+        if(this.shake>0) this.ctx.translate((Math.random()-.5)*this.shake, (Math.random()-.5)*this.shake);
         
-        // Background
         let t = this.themes[this.themeIdx];
-        let grad = this.ctx.createLinearGradient(0,0,0,this.H);
-        grad.addColorStop(0, t.sky[0]); grad.addColorStop(1, t.sky[1]);
-        this.ctx.fillStyle = grad; this.ctx.fillRect(0,0,this.W,this.H);
+        let g = this.ctx.createLinearGradient(0,0,0,this.H); g.addColorStop(0,t.sky[0]); g.addColorStop(1,t.sky[1]);
+        this.ctx.fillStyle=g; this.ctx.fillRect(0,0,this.W,this.H);
         
-        // Stars
-        this.ctx.fillStyle = "#fff";
-        this.bgLayers.forEach(star => {
-            star.x -= star.speed;
-            if(star.x < 0) star.x = this.W;
-            this.ctx.fillRect(star.x, star.y, star.size, star.size);
-        });
+        this.ctx.fillStyle='#fff'; this.bg.forEach(s=>{ s.x-=0.5; if(s.x<0)s.x=this.W; this.ctx.fillRect(s.x,s.y,s.s,s.s); });
         
-        // Mars Moons (Background Decoration)
-        if(this.themeIdx === 1) {
-             this.ctx.fillStyle = 'rgba(200,100,100,0.5)';
-             this.ctx.beginPath(); this.ctx.arc(this.W - (this.frames*0.1)%this.W, 100, 30, 0, Math.PI*2); this.ctx.fill();
-        }
-
-        // Ground
-        this.ctx.fillStyle = t.ground;
-        this.ctx.fillRect(0, this.GroundY, this.W, this.H - this.GroundY);
+        this.parallax.forEach(p=>p.draw(this.ctx));
         
-        // Draw Objects
-        this.entities.forEach(e => e.draw(this.ctx));
-        this.bullets.forEach(b => b.draw(this.ctx));
-        this.particles.forEach(p => p.draw(this.ctx));
+        this.ctx.fillStyle=t.g; this.ctx.fillRect(0,this.GroundY,this.W,this.H-this.GroundY);
+        
+        this.ents.forEach(e=>e.draw(this.ctx));
+        this.bulls.forEach(b=>b.draw(this.ctx));
         this.player.draw(this.ctx);
-        this.texts.forEach(t => t.draw(this.ctx));
+        this.parts.forEach(p=>p.draw(this.ctx));
+        this.txts.forEach(t=>t.draw(this.ctx));
         
         this.ctx.restore();
     },
     
     loop: function() {
         if(!this.active) return;
-        requestAnimationFrame(() => this.loop());
-        this.update();
-        this.draw();
+        requestAnimationFrame(()=>this.loop());
+        this.update(); this.draw();
     },
     
-    gameOver: function() {
-        this.active = false;
+    over: function() {
+        this.active=false;
         document.getElementById('menu-overlay').classList.remove('hidden');
-        document.querySelector('h1').innerText = "GAME OVER";
-        document.querySelector('.menu-panel p').innerText = "SCORE: " + this.score;
-        document.getElementById('mobile-controls').style.display = 'none';
+        document.querySelector('h1').innerText="GAME OVER";
+        document.getElementById('mobile-controls').style.display='none';
     }
 };
-
-// Initialize Game logic
 GAME.init();
-
 </script>
 </body>
 </html>
