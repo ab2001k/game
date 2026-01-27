@@ -11,7 +11,7 @@
         --primary: #00f3ff; 
         --danger: #ff0044; 
         --warn: #ffcc00; 
-        --hud-bg: rgba(0, 10, 20, 0.9);
+        --hud-bg: rgba(0, 10, 20, 0.95);
     }
     * { box-sizing: border-box; }
     
@@ -24,17 +24,17 @@
         user-select: none;
     }
 
-    /* GAME CONTAINER - RESPONSIVE FIX */
+    /* GAME CONTAINER - FORCES 16:9 RATIO */
     #game-container {
         position: relative; 
         width: 100%; max-width: 1280px;
         aspect-ratio: 16/9;
         background: #000; 
-        box-shadow: 0 0 50px rgba(0, 243, 255, 0.2);
+        box-shadow: 0 0 80px rgba(0, 243, 255, 0.15);
         border: 2px solid #333;
     }
     
-    /* Ensure canvas fills the container */
+    /* CANVAS FILLS CONTAINER */
     canvas { 
         display: block; width: 100%; height: 100%; 
         image-rendering: auto; 
@@ -42,7 +42,7 @@
 
     /* HUD */
     #ui-layer {
-        position: absolute; inset: 0; pointer-events: none; padding: 2%;
+        position: absolute; inset: 0; pointer-events: none; padding: 25px;
         display: flex; flex-direction: column; justify-content: space-between; z-index: 10;
     }
     .hud-top { display: flex; justify-content: space-between; width: 100%; align-items: flex-start; }
@@ -52,7 +52,7 @@
         border: 1px solid rgba(255,255,255,0.15);
         padding: 10px 20px; border-radius: 4px;
         box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-        min-width: 200px;
+        min-width: 220px;
     }
     
     .hp-text { font-size: 2rem; letter-spacing: 5px; color: var(--danger); text-shadow: 0 0 15px var(--danger); }
@@ -68,20 +68,20 @@
     #mobile-link {
         position: absolute; top: 10px; right: 10px; pointer-events: auto;
         background: #333; color: #fff; text-decoration: none;
-        padding: 8px 15px; font-size: 0.8rem; border: 1px solid #555;
-        font-family: sans-serif; opacity: 0.5; transition: opacity 0.2s; z-index: 100;
-        border-radius: 4px;
+        padding: 10px 20px; font-size: 0.9rem; border: 1px solid #555;
+        font-family: sans-serif; opacity: 0.7; transition: 0.2s; z-index: 200;
+        border-radius: 4px; font-weight: bold;
     }
-    #mobile-link:hover { opacity: 1; background: var(--primary); color: #000; }
+    #mobile-link:hover { opacity: 1; background: var(--primary); color: #000; box-shadow: 0 0 15px var(--primary); }
 
     /* MENUS */
     #menu-overlay {
-        position: absolute; inset: 0; background: rgba(0,0,0,0.9);
+        position: absolute; inset: 0; background: rgba(0,0,0,0.95);
         display: flex; flex-direction: column; justify-content: center; align-items: center;
-        z-index: 100; text-align: center; backdrop-filter: blur(5px);
+        z-index: 100; text-align: center; backdrop-filter: blur(10px);
     }
     h1 {
-        font-family: 'Black Ops One'; font-size: clamp(3rem, 5vw, 5rem); margin: 0;
+        font-family: 'Black Ops One'; font-size: clamp(3rem, 6vw, 6rem); margin: 0;
         background: linear-gradient(180deg, #fff, #555);
         -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         filter: drop-shadow(0 0 30px var(--primary)); letter-spacing: -2px;
@@ -89,7 +89,7 @@
     .menu-panel {
         border-top: 2px solid var(--primary); border-bottom: 2px solid var(--primary); 
         padding: 40px; background: rgba(0, 20, 20, 0.8);
-        width: 100%; max-width: 600px;
+        width: 100%; max-width: 700px;
     }
     .start-btn {
         display: inline-block; padding: 20px 60px; font-family: 'Orbitron'; font-size: 1.5rem; font-weight: 900;
@@ -102,16 +102,17 @@
 
     #controls-hint {
         margin-top: 30px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
-        text-align: left; font-size: 0.9rem; color: #aaa;
+        text-align: left; font-size: 1rem; color: #aaa;
     }
-    .key { color: #fff; border: 1px solid #666; padding: 2px 6px; border-radius: 4px; background: #222; }
+    .key { color: #fff; border: 1px solid #666; padding: 2px 8px; border-radius: 4px; background: #222; font-family: monospace; }
 </style>
 </head>
 <body>
 
 <div id="game-container">
-    <a href="game.html" id="mobile-link">Play in Mobile 📱</a>
-    <canvas id="cvs"></canvas>
+    <a href="game.html" id="mobile-link">SWITCH TO MOBILE 📱</a>
+    
+    <canvas id="cvs" width="1280" height="720"></canvas>
 
     <div id="ui-layer">
         <div class="hud-top">
@@ -144,17 +145,17 @@
                 <div>SHOOT: <span class="key">F</span></div>
             </div>
 
-            <button class="start-btn" onclick="GAME.start()">INITIALIZE</button>
+            <button class="start-btn" onclick="GAME.start()">INITIALIZE SYSTEM</button>
         </div>
     </div>
 </div>
 
 <script>
-/* ================= SYSTEM ================= */
+/* ================= SYSTEM: AUDIO & INPUT ================= */
 const AudioSys = {
     ctx: null,
     init: function() {
-        this.ctx = new (window.AudioContext||window.webkitAudioContext)();
+        if(!this.ctx) this.ctx = new (window.AudioContext||window.webkitAudioContext)();
         if(this.ctx.state==='suspended') this.ctx.resume();
     },
     play: function(t) {
@@ -196,21 +197,22 @@ class Particle {
 
 class BackMissile {
     constructor() {
-        this.x = -50; this.y = GAME.player.y; 
+        this.x = -100; this.y = GAME.player.y; 
         this.w = 40; this.h = 12;
         this.vx = 8; this.dead = false;
-        GAME.txts.push(new FloatingText(100, this.y, "⚠ MISSILE INCOMING", "#f00"));
+        GAME.txts.push(new FloatingText(150, this.y, "⚠ MISSILE DETECTED", "#f00"));
+        AudioSys.play('shoot'); // Warning sound
     }
     update() {
         this.x += this.vx;
-        if(this.x < GAME.player.x) { // Mild Homing
-            if(this.y < GAME.player.y) this.y += 0.5;
-            if(this.y > GAME.player.y) this.y -= 0.5;
+        // Tracking Logic
+        if(this.x < GAME.player.x) {
+            if(this.y < GAME.player.y) this.y += 0.8;
+            if(this.y > GAME.player.y) this.y -= 0.8;
         }
         GAME.spawnPart(this.x, this.y+5, '#f00', 3, 5, 0); // Trail
         if(this.x > GAME.W + 50) this.dead = true;
         
-        // Hit Player
         if(checkRect(this, GAME.player)) {
             GAME.player.hit(1);
             this.dead = true;
@@ -218,7 +220,7 @@ class BackMissile {
         }
     }
     draw(ctx) {
-        ctx.fillStyle = "#fff"; ctx.fillRect(this.x, this.y, this.w, this.h);
+        ctx.fillStyle = "#ccc"; ctx.fillRect(this.x, this.y, this.w, this.h);
         ctx.fillStyle = "#f00"; ctx.fillRect(this.x+30, this.y, 10, this.h); 
         ctx.fillStyle = "#555"; ctx.fillRect(this.x-5, this.y+2, 5, 8); 
     }
@@ -247,23 +249,27 @@ class Player {
         this.jumpCount=0; this.reloadTimer=0;
     }
     update() {
+        // Movement
         if(Input.keys.Left) { this.vx = -6; this.walkCycle+=0.4; }
         else if(Input.keys.Right) { this.vx = 6; this.walkCycle+=0.4; }
         else { this.vx *= 0.8; this.walkCycle=0; }
         this.x = Math.max(0, Math.min(GAME.W-this.w, this.x+this.vx));
 
+        // Jetpack
         if(Input.keys.Up && !this.grounded && this.fuel>0) {
             this.vy -= 0.8; this.fuel -= 1;
             GAME.spawnPart(this.x+10, this.y+45, '#0ff', 4, 10, 0.5);
-            if(GAME.frames%5===0) AudioSys.play('jet');
-        } else if(this.grounded && this.fuel<100) this.fuel += 0.5;
+            if(GAME.frames%6===0) AudioSys.play('jet');
+        } else if(this.grounded && this.fuel<100) this.fuel += 0.6;
 
+        // Gravity
         this.vy += GAME.Gravity; this.y += this.vy;
         if(this.y+this.h > GAME.GroundY) {
             this.y = GAME.GroundY - this.h; this.vy = 0; 
             this.grounded = true; this.jumpCount=0;
         } else this.grounded = false;
 
+        // Auto Reload
         if(this.ammo < 12) {
             this.reloadTimer++;
             if(this.reloadTimer > 40) { this.ammo++; this.reloadTimer=0; }
@@ -347,7 +353,7 @@ class Enemy {
     draw(ctx) {
         if(this.t==='dragon') {
             ctx.fillStyle='#900'; ctx.beginPath(); ctx.ellipse(this.x+50,this.y+30,50,25,0,0,Math.PI*2); ctx.fill();
-            ctx.fillStyle='#f00'; ctx.beginPath(); ctx.moveTo(this.x+50,this.y+10); ctx.lineTo(this.x+30,this.y-50); ctx.lineTo(this.x+90,this.y+10); ctx.fill();
+            ctx.fillStyle='#f00'; ctx.beginPath(); ctx.moveTo(this.x+50,this.y+10); ctx.lineTo(this.x+20,this.y-50); ctx.lineTo(this.x+80,this.y+10); ctx.fill();
             ctx.fillStyle='#000'; ctx.fillRect(this.x,this.y+20,10,10);
         } else if(this.t==='tnt') {
             ctx.fillStyle='#111'; ctx.beginPath(); ctx.arc(this.x+15,this.y+15,15,0,Math.PI*2); ctx.fill();
@@ -368,6 +374,7 @@ class FloatingText {
     draw(ctx) { ctx.globalAlpha=this.l/60; ctx.fillStyle=this.c; ctx.font="bold 20px Orbitron"; ctx.fillText(this.t,this.x,this.y); ctx.globalAlpha=1; }
 }
 
+/* ================= ENGINE ================= */
 const GAME = {
     cvs: document.getElementById('cvs'), ctx: document.getElementById('cvs').getContext('2d'),
     W: 1280, H: 720, GroundY: 640, Gravity: 0.6,
@@ -384,7 +391,6 @@ const GAME = {
     bgLayer1: [], bgLayer2: [],
 
     start: function() {
-        this.cvs.width = this.W; this.cvs.height = this.H;
         this.active = true; this.score = 0; this.frames = 0; this.level = 1;
         this.player = new Player();
         this.ents = []; this.bulls = []; this.parts = []; this.txts = [];
