@@ -24,7 +24,6 @@
         user-select: none;
     }
 
-    /* GAME CONTAINER - FORCES 16:9 RATIO */
     #game-container {
         position: relative; 
         width: 100%; max-width: 1280px;
@@ -34,13 +33,11 @@
         border: 2px solid #333;
     }
     
-    /* CANVAS FILLS CONTAINER */
     canvas { 
         display: block; width: 100%; height: 100%; 
         image-rendering: auto; 
     }
 
-    /* HUD */
     #ui-layer {
         position: absolute; inset: 0; pointer-events: none; padding: 25px;
         display: flex; flex-direction: column; justify-content: space-between; z-index: 10;
@@ -64,7 +61,6 @@
     .bar-track { width: 100%; height: 8px; background: #222; border: 1px solid #444; border-radius: 2px; overflow: hidden; }
     .bar-fill { height: 100%; transition: width 0.1s linear; }
 
-    /* MOBILE LINK BTN */
     #mobile-link {
         position: absolute; top: 10px; right: 10px; pointer-events: auto;
         background: #333; color: #fff; text-decoration: none;
@@ -74,7 +70,6 @@
     }
     #mobile-link:hover { opacity: 1; background: var(--primary); color: #000; box-shadow: 0 0 15px var(--primary); }
 
-    /* MENUS */
     #menu-overlay {
         position: absolute; inset: 0; background: rgba(0,0,0,0.95);
         display: flex; flex-direction: column; justify-content: center; align-items: center;
@@ -151,7 +146,7 @@
 </div>
 
 <script>
-/* ================= SYSTEM: AUDIO & INPUT ================= */
+/** SYSTEM: AUDIO & INPUT */
 const AudioSys = {
     ctx: null,
     init: function() {
@@ -180,15 +175,15 @@ const Input = {
         if(c==='ArrowRight') this.keys.Right = s;
         if(c==='Space' || c==='ArrowUp') {
             this.keys.Up = s;
-            if(s && !this.prevUp) GAME.player.tapJump();
+            if(s && !this.prevUp && GAME.active) GAME.player.tapJump();
             this.prevUp = s;
         }
-        if(c==='KeyF') { if(s && !this.keys.Fire) GAME.player.shoot(); this.keys.Fire = s; }
+        if(c==='KeyF') { if(s && !this.keys.Fire && GAME.active) GAME.player.shoot(); this.keys.Fire = s; }
     },
     prevUp: false
 };
 
-/* ================= ENTITIES ================= */
+/** ENTITIES */
 class Particle {
     constructor(x,y,c,s,l,g) { this.x=x;this.y=y;this.c=c;this.vx=(Math.random()-.5)*s;this.vy=(Math.random()-.5)*s;this.l=l;this.ml=l;this.g=g||0; }
     update() { this.x+=this.vx; this.y+=this.vy; this.vy+=this.g; this.l--; }
@@ -200,17 +195,16 @@ class BackMissile {
         this.x = -100; this.y = GAME.player.y; 
         this.w = 40; this.h = 12;
         this.vx = 8; this.dead = false;
-        GAME.txts.push(new FloatingText(150, this.y, "⚠ MISSILE DETECTED", "#f00"));
-        AudioSys.play('shoot'); // Warning sound
+        GAME.txts.push(new FloatingText(150, this.y, "⚠ MISSILE INCOMING", "#f00"));
+        AudioSys.play('shoot'); 
     }
     update() {
         this.x += this.vx;
-        // Tracking Logic
-        if(this.x < GAME.player.x) {
+        if(this.x < GAME.player.x) { // Tracking
             if(this.y < GAME.player.y) this.y += 0.8;
             if(this.y > GAME.player.y) this.y -= 0.8;
         }
-        GAME.spawnPart(this.x, this.y+5, '#f00', 3, 5, 0); // Trail
+        GAME.spawnPart(this.x, this.y+5, '#f00', 3, 5, 0); 
         if(this.x > GAME.W + 50) this.dead = true;
         
         if(checkRect(this, GAME.player)) {
@@ -249,27 +243,23 @@ class Player {
         this.jumpCount=0; this.reloadTimer=0;
     }
     update() {
-        // Movement
         if(Input.keys.Left) { this.vx = -6; this.walkCycle+=0.4; }
         else if(Input.keys.Right) { this.vx = 6; this.walkCycle+=0.4; }
         else { this.vx *= 0.8; this.walkCycle=0; }
         this.x = Math.max(0, Math.min(GAME.W-this.w, this.x+this.vx));
 
-        // Jetpack
         if(Input.keys.Up && !this.grounded && this.fuel>0) {
             this.vy -= 0.8; this.fuel -= 1;
             GAME.spawnPart(this.x+10, this.y+45, '#0ff', 4, 10, 0.5);
             if(GAME.frames%6===0) AudioSys.play('jet');
         } else if(this.grounded && this.fuel<100) this.fuel += 0.6;
 
-        // Gravity
         this.vy += GAME.Gravity; this.y += this.vy;
         if(this.y+this.h > GAME.GroundY) {
             this.y = GAME.GroundY - this.h; this.vy = 0; 
             this.grounded = true; this.jumpCount=0;
         } else this.grounded = false;
 
-        // Auto Reload
         if(this.ammo < 12) {
             this.reloadTimer++;
             if(this.reloadTimer > 40) { this.ammo++; this.reloadTimer=0; }
@@ -374,9 +364,10 @@ class FloatingText {
     draw(ctx) { ctx.globalAlpha=this.l/60; ctx.fillStyle=this.c; ctx.font="bold 20px Orbitron"; ctx.fillText(this.t,this.x,this.y); ctx.globalAlpha=1; }
 }
 
-/* ================= ENGINE ================= */
+/** GAME ENGINE */
 const GAME = {
-    cvs: document.getElementById('cvs'), ctx: document.getElementById('cvs').getContext('2d'),
+    cvs: document.getElementById('cvs'), 
+    ctx: document.getElementById('cvs').getContext('2d'),
     W: 1280, H: 720, GroundY: 640, Gravity: 0.6,
     active: false, frames: 0, score: 0, level: 1, shake: 0,
     player: null, ents: [], bulls: [], parts: [], txts: [], 
@@ -390,13 +381,23 @@ const GAME = {
     themeIdx: 0,
     bgLayer1: [], bgLayer2: [],
 
+    init: function() {
+        Input.init();
+        // FORCE INITIAL DRAW
+        this.ctx.fillStyle = '#000';
+        this.ctx.fillRect(0,0,this.W,this.H);
+        this.ctx.fillStyle = '#00f3ff';
+        this.ctx.font = '30px Orbitron';
+        this.ctx.fillText("SYSTEM READY", 50, 50);
+    },
+
     start: function() {
         this.active = true; this.score = 0; this.frames = 0; this.level = 1;
         this.player = new Player();
         this.ents = []; this.bulls = []; this.parts = []; this.txts = [];
         this.bgLayer1 = []; this.bgLayer2 = [];
         
-        Input.init(); AudioSys.init();
+        AudioSys.init();
         document.getElementById('menu-overlay').classList.add('hidden');
         this.loop();
     },
@@ -406,14 +407,18 @@ const GAME = {
     update: function() {
         this.frames++;
         
+        // Theme Cycle
         if(this.frames % 1200 === 0) {
             this.themeIdx = (this.themeIdx + 1) % 4;
             this.txts.push(new FloatingText(this.W/2-50, 200, "WARP: " + this.themes[this.themeIdx].id.toUpperCase(), "#fff"));
         }
+        
+        // BG Generation
         if(this.frames % 200 === 0) this.bgLayer1.push({x:this.W, type:'mountain'}); 
         if(this.frames % 60 === 0) this.bgLayer2.push({x:this.W, type:'tree'});
         if(this.frames % 1200 === 100) this.bgLayer1.push({x:this.W, type:'brand'});
 
+        // Enemy Spawning
         if(this.frames % Math.max(40, 100-this.level*5) === 0) {
             let r=Math.random();
             if(r<0.15) this.ents.push(new Enemy('dragon'));
@@ -422,6 +427,7 @@ const GAME = {
             else this.ents.push(new Enemy('basic'));
         }
 
+        // Backside Missile
         if(this.frames % 600 === 300) {
             this.ents.push(new BackMissile());
         }
@@ -433,7 +439,6 @@ const GAME = {
             b.update();
             if(b.o==='player') {
                 this.ents.forEach(e=>{ if(!b.dead && !e.dead && checkRect(b,e)) { b.dead=true; e.hit(); }});
-                this.ents.forEach(e=>{ if(!b.dead && e instanceof BackMissile && checkRect(b,e)) { b.dead=true; e.hit(); }});
             } else if (checkRect(b, GAME.player)) { b.dead=true; GAME.player.hit(1); }
         });
         this.bulls=this.bulls.filter(b=>!b.dead);
@@ -448,18 +453,22 @@ const GAME = {
 
     draw: function() {
         let t = this.themes[this.themeIdx];
+        
+        // Background
         let g = this.ctx.createLinearGradient(0,0,0,this.H); g.addColorStop(0,t.sky[0]); g.addColorStop(1,t.sky[1]);
         this.ctx.fillStyle = g; this.ctx.fillRect(0,0,this.W,this.H);
 
         this.ctx.save();
         if(this.shake>0.5) this.ctx.translate((Math.random()-.5)*this.shake, (Math.random()-.5)*this.shake);
 
+        // Mars Moons
         if(t.id==='Mars') {
             this.ctx.fillStyle = "rgba(200,50,50,0.4)";
             this.ctx.beginPath(); this.ctx.arc(this.W-200, 150, 40, 0, Math.PI*2); this.ctx.fill();
             this.ctx.beginPath(); this.ctx.arc(this.W-100, 250, 20, 0, Math.PI*2); this.ctx.fill();
         }
         
+        // Layer 1 (Blurred)
         this.ctx.filter = 'blur(2px)';
         this.bgLayer1.forEach(b => {
             if(b.type==='mountain') {
@@ -472,12 +481,14 @@ const GAME = {
         });
         this.ctx.filter = 'none';
 
+        // Layer 2
         this.bgLayer2.forEach(b => {
             this.ctx.fillStyle = "rgba(0,0,0,0.5)";
             this.ctx.fillRect(b.x, this.GroundY-60, 20, 60); 
             this.ctx.beginPath(); this.ctx.arc(b.x+10, this.GroundY-80, 30, 0, Math.PI*2); this.ctx.fill();
         });
 
+        // Ground
         this.ctx.fillStyle = t.ground; this.ctx.fillRect(0, this.GroundY, this.W, this.H-this.GroundY);
         this.ctx.strokeStyle = "rgba(255,255,255,0.2)"; this.ctx.beginPath(); this.ctx.moveTo(0,this.GroundY); this.ctx.lineTo(this.W,this.GroundY); this.ctx.stroke();
 
@@ -511,6 +522,12 @@ const GAME = {
         this.ctx.restore();
     },
 
+    loop: function() {
+        if(!this.active) return;
+        requestAnimationFrame(()=>this.loop());
+        this.update(); this.draw();
+    },
+
     over: function() {
         this.active=false;
         document.getElementById('menu-overlay').classList.remove('hidden');
@@ -520,6 +537,7 @@ const GAME = {
 
 function checkRect(a,b) { return a.x < b.x+b.w && a.x+a.w > b.x && a.y < b.y+b.h && a.y+a.h > b.y; }
 
+GAME.init();
 </script>
 </body>
 </html>
