@@ -50,7 +50,7 @@
         padding: 10px 20px; border-radius: 4px;
         box-shadow: 0 4px 20px rgba(0,0,0,0.5);
         min-width: 220px;
-        pointer-events: auto; /* Allow clicking buttons inside */
+        pointer-events: auto;
     }
     
     .hp-text { font-size: 2rem; letter-spacing: 5px; color: var(--danger); text-shadow: 0 0 15px var(--danger); }
@@ -62,7 +62,6 @@
     .bar-track { width: 100%; height: 8px; background: #222; border: 1px solid #444; border-radius: 2px; overflow: hidden; }
     .bar-fill { height: 100%; transition: width 0.1s linear; }
 
-    /* SOUND BUTTON */
     #sound-btn {
         background: transparent; border: 1px solid #555; color: #fff;
         cursor: pointer; padding: 5px 10px; font-size: 1.2rem;
@@ -174,13 +173,24 @@ const AudioSys = {
         if(!this.ctx) {
             try { this.ctx = new (window.AudioContext||window.webkitAudioContext)(); } catch(e){}
         }
+        // Restore Preference
+        const saved = localStorage.getItem('omni_mute');
+        if(saved !== null) this.muted = (saved === 'true');
+        this.updateBtn();
+        
         if(this.ctx && this.ctx.state==='suspended') this.ctx.resume();
     },
     toggle: function() {
         this.muted = !this.muted;
+        localStorage.setItem('omni_mute', this.muted); // Save Preference
+        this.updateBtn();
+    },
+    updateBtn: function() {
         const btn = document.getElementById('sound-btn');
-        btn.innerHTML = this.muted ? '🔇' : '🔊';
-        btn.classList.toggle('off-sound', this.muted);
+        if(btn) {
+            btn.innerHTML = this.muted ? '🔇' : '🔊';
+            btn.classList.toggle('off-sound', this.muted);
+        }
     },
     play: function(t) {
         if(this.muted || !this.ctx) return;
@@ -191,6 +201,7 @@ const AudioSys = {
         if(t==='jump'){ o.type='sine'; o.frequency.setValueAtTime(200,now); o.frequency.linearRampToValueAtTime(400,now+0.2); g.gain.setValueAtTime(0.1,now); g.gain.linearRampToValueAtTime(0,now+0.2); o.start(now); o.stop(now+0.2); }
         if(t==='jet'){ o.type='sawtooth'; o.frequency.setValueAtTime(50,now); g.gain.setValueAtTime(0.05,now); g.gain.linearRampToValueAtTime(0,now+0.1); o.start(now); o.stop(now+0.1); }
         if(t==='boom'){ o.type='sawtooth'; o.frequency.setValueAtTime(100,now); o.frequency.exponentialRampToValueAtTime(10,now+0.4); g.gain.setValueAtTime(0.2,now); g.gain.linearRampToValueAtTime(0,now+0.4); o.start(now); o.stop(now+0.4); }
+        if(t==='beep'){ o.type='sine'; o.frequency.setValueAtTime(800,now); g.gain.setValueAtTime(0.1,now); g.gain.linearRampToValueAtTime(0,now+0.1); o.start(now); o.stop(now+0.1); }
         if(t==='charge'){ o.type='triangle'; o.frequency.setValueAtTime(400,now); o.frequency.linearRampToValueAtTime(800,now+0.5); g.gain.setValueAtTime(0.05,now); g.gain.linearRampToValueAtTime(0,now+0.5); o.start(now); o.stop(now+0.5); }
     }
 };
@@ -227,7 +238,7 @@ class Particle {
     }
     update() { 
         this.x+=this.vx; this.y+=this.vy; this.vy+=this.g; this.l--; 
-        if(this.type==='shock') this.size += 4; // Expanding ring
+        if(this.type==='shock') this.size += 4; 
     }
     draw(ctx) { 
         ctx.globalAlpha=this.l/this.ml; 
@@ -290,9 +301,26 @@ class Player {
         this.jumpCount=0; this.reloadTimer=0;
     }
     update() {
-        if(Input.keys.Left) { this.vx = -6; this.walkCycle+=0.4; }
-        else if(Input.keys.Right) { this.vx = 6; this.walkCycle+=0.4; }
-        else { this.vx *= 0.8; this.walkCycle=0; }
+        // == SMOOTH PHYSICS CONTROL ==
+        // Acceleration instead of fixed speed
+        if(Input.keys.Left) { 
+            this.vx -= 0.8; 
+            this.walkCycle += 0.4; 
+        }
+        else if(Input.keys.Right) { 
+            this.vx += 0.8; 
+            this.walkCycle += 0.4; 
+        }
+        else { 
+            // Friction
+            this.vx *= 0.85; 
+            this.walkCycle = 0; 
+        }
+
+        // Cap speed
+        this.vx = Math.max(-9, Math.min(9, this.vx));
+        
+        // Apply position
         this.x = Math.max(0, Math.min(GAME.W-this.w, this.x+this.vx));
 
         if(Input.keys.Up && !this.grounded && this.fuel>0) {
@@ -317,7 +345,7 @@ class Player {
     }
     tapJump() {
         if(this.grounded || this.jumpCount < 2) {
-            this.vy = -10; this.jumpCount++; this.grounded=false;
+            this.vy = -12; this.jumpCount++; this.grounded=false;
             AudioSys.play('jump');
             GAME.spawnPart(this.x+20, this.y+50, '#fff', 5, 20, 0);
         }
@@ -343,6 +371,13 @@ class Player {
     draw(ctx) {
         if(this.invuln>0 && Math.floor(GAME.frames/4)%2) return;
         let legOffset = Math.sin(this.walkCycle) * 10;
+        
+        // Tilt effect based on speed
+        ctx.save();
+        ctx.translate(this.x+this.w/2, this.y+this.h/2);
+        ctx.rotate(this.vx * 0.02);
+        ctx.translate(-(this.x+this.w/2), -(this.y+this.h/2));
+
         ctx.fillStyle = '#bbb';
         if(this.grounded) {
             ctx.fillRect(this.x+8 + legOffset, this.y+40, 8, 10); 
@@ -355,6 +390,8 @@ class Player {
         ctx.fillStyle = '#333'; ctx.fillRect(this.x+20, this.y+10, 20, 10);
         ctx.fillStyle = '#555'; ctx.fillRect(this.x-5, this.y+10, 10, 30);
         ctx.fillStyle = this.fuel>20 ? '#0f0' : '#f00'; ctx.fillRect(this.x-2, this.y+15, 4, 4);
+        
+        ctx.restore();
     }
 }
 
@@ -365,17 +402,48 @@ class Enemy {
         this.yPhase = Math.random() * Math.PI;
         this.beamTimer = 0; 
         
-        if(t==='dragon') { this.w=50; this.h=40; this.hp=2; } // Changed dims for Bird
+        // Time Bomb Properties
+        this.bombTimer = 0; 
+        this.triggered = false;
+        
+        if(t==='dragon') { this.w=50; this.h=40; this.hp=2; } 
         else if(t==='ufo') { this.w=60; this.h=30; this.hp=2; }
-        else if(t==='tnt') { this.y=GAME.GroundY-30; this.w=30; this.h=30; }
+        else if(t==='tnt') { this.y=GAME.GroundY-30; this.w=30; this.h=30; this.hp=2; } // TNT has HP but also self-destructs
         else if(t==='traitor') { this.y=GAME.GroundY-60; this.h=50; this.hp=2; this.fired=false; }
-        else this.y=GAME.GroundY-40; // Basic car y pos
+        else this.y=GAME.GroundY-40; 
     }
     update() {
-        if(this.t !== 'ufo' || this.beamTimer <= 0) this.x -= (3 + GAME.level * 0.8); 
+        // Movement
+        if(this.t !== 'ufo' || this.beamTimer <= 0) {
+            // TNT stays still if triggered? No, it's a game, keep it moving for difficulty, 
+            // but let's make TNT move slower than cars
+            let spd = (this.t === 'tnt') ? (2 + GAME.level*0.5) : (3 + GAME.level * 0.8);
+            this.x -= spd; 
+        }
         this.tm++;
         
-        // TRAITOR LOGIC - only shoots if behind player (passed them)
+        // == PROXIMITY MINE LOGIC (TNT) ==
+        if(this.t === 'tnt') {
+             let centerX = this.x + this.w/2;
+             let pCenterX = GAME.player.x + GAME.player.w/2;
+             let dist = Math.abs(centerX - pCenterX);
+             
+             // Trigger if close
+             if(!this.triggered && dist < 150) {
+                 this.triggered = true;
+                 this.bombTimer = 90; // ~1.5 Seconds (60fps)
+             }
+             
+             if(this.triggered) {
+                 this.bombTimer--;
+                 if(this.bombTimer % 15 === 0) AudioSys.play('beep'); // Warning beep
+                 if(this.bombTimer <= 0) {
+                     this.hit(true); // Force explosion
+                 }
+             }
+        }
+
+        // TRAITOR LOGIC
         if(this.t==='traitor' && this.x < -10 && !this.fired) {
             this.fired = true;
             GAME.ents.push(new BackMissile(this.y + 10));
@@ -386,7 +454,6 @@ class Enemy {
             this.y = this.yBase + Math.sin(this.tm * 0.05 + this.yPhase) * 60;
         }
         
-        // ALIEN BEAM LOGIC
         if(this.t==='ufo') {
             this.y = this.yBase + Math.sin(this.tm * 0.04) * 80;
             if(this.beamTimer === 0 && Math.random() < 0.005) {
@@ -404,61 +471,78 @@ class Enemy {
         
         if(this.x < -200) this.dead=true;
 
+        // Collision Body Damage
         if(checkRect(this, GAME.player)) {
-            GAME.player.hit(1);
-            if(this.t==='tnt') { this.hit(); } // Trigger huge explosion on touch too
-        }
-    }
-    hit() {
-        this.hp--; 
-        if(this.hp > 0) {
-            this.y += 10; AudioSys.play('jump'); GAME.spawnPart(this.x+20,this.y+20,'#fff',3,5,0);
-        } else {
-            this.dead=true; GAME.score += (this.t==='dragon'?500:100);
-            
-            if(this.t === 'traitor') {
-                // MASSIVE EXPLOSION FOR TRAITOR
-                GAME.spawnPart(this.x, this.y, '#ff4400', 8, 40, 0, 'shock');
-                for(let i=0; i<30; i++) GAME.spawnPart(this.x+20, this.y+25, Math.random()>.5?'#f00':'#ff0', 15, 50, 0.5);
-                GAME.shake = 10;
-            } 
-            else if(this.t === 'tnt') {
-                 // VISUAL TREAT EXPLOSION FOR TNT
-                 GAME.spawnPart(this.x, this.y, '#ff4400', 10, 60, 0, 'shock'); // shockwave
-                 for(let i=0; i<40; i++) {
-                     let col = ['#f00','#ff0','#fff'][Math.floor(Math.random()*3)];
-                     GAME.spawnPart(this.x+15, this.y+15, col, 12, 50, 0.3);
-                 }
-                 GAME.shake = 20;
+            if(this.t==='tnt') {
+                 this.hit(true); // Instant explode on touch
+            } else {
+                 GAME.player.hit(1);
+                 this.hit(true); // Enemy dies on impact
             }
-            else {
-                GAME.spawnPart(this.x,this.y,this.t==='ufo'?'#0f0':'#fc0', 20, 20, 0.5);
-            }
-            AudioSys.play('boom');
         }
     }
     
-    // NEW DRAWING FUNCTIONS
+    // hit(forceKill) -> forceKill ensures explosion even if HP > 1
+    hit(forceKill) {
+        this.hp--; 
+        if(this.hp > 0 && !forceKill) {
+            this.y += 10; AudioSys.play('jump'); GAME.spawnPart(this.x+20,this.y+20,'#fff',3,5,0);
+        } else {
+            this.dead=true; 
+            if(!forceKill) GAME.score += (this.t==='dragon'?500:100);
+            
+            // EXPLOSION LOGIC
+            if(this.t === 'traitor' || this.t === 'tnt') {
+                // Large visual explosion
+                GAME.spawnPart(this.x, this.y, '#ff4400', 10, 50, 0, 'shock');
+                for(let i=0; i<30; i++) GAME.spawnPart(this.x+15, this.y+15, Math.random()>.5?'#f00':'#ff0', 15, 50, 0.5);
+                GAME.shake = 20;
+                AudioSys.play('boom');
+
+                // AREA DAMAGE CHECK (Blast Radius)
+                let dx = (this.x+this.w/2) - (GAME.player.x+GAME.player.w/2);
+                let dy = (this.y+this.h/2) - (GAME.player.y+GAME.player.h/2);
+                let dist = Math.sqrt(dx*dx + dy*dy);
+                // If player is close to the explosion, take damage
+                if(dist < 180) {
+                    GAME.player.hit(1);
+                    GAME.txts.push(new FloatingText(GAME.player.x, GAME.player.y-50, "BLAST HIT!", "#f00"));
+                }
+
+            } else {
+                // Normal death
+                GAME.spawnPart(this.x,this.y,this.t==='ufo'?'#0f0':'#fc0', 20, 20, 0.5);
+                AudioSys.play('boom');
+            }
+        }
+    }
+    
     draw(ctx) {
         if(this.t==='dragon') {
             // == BIRD ==
             let wingOffset = Math.sin(this.tm * 0.3) * 15;
-            ctx.fillStyle = '#e55'; // Reddish body
+            ctx.fillStyle = '#e55'; 
             ctx.beginPath(); ctx.ellipse(this.x+25, this.y+20, 20, 12, 0, 0, Math.PI*2); ctx.fill();
-            // Beak
             ctx.fillStyle = '#ff0'; ctx.beginPath(); ctx.moveTo(this.x, this.y+20); ctx.lineTo(this.x+10, this.y+15); ctx.lineTo(this.x+10, this.y+25); ctx.fill();
-            // Wing
             ctx.fillStyle = '#a00'; 
             ctx.beginPath(); ctx.moveTo(this.x+25, this.y+15); ctx.lineTo(this.x+15, this.y-10+wingOffset); ctx.lineTo(this.x+40, this.y+15); ctx.fill();
-            // Eye
             ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(this.x+15, this.y+15, 3, 0, Math.PI*2); ctx.fill();
 
         } else if(this.t==='tnt') {
-            // == TNT ==
-            ctx.fillStyle='#B22222'; ctx.fillRect(this.x, this.y, this.w, this.h); // Red barrel
-            ctx.fillStyle='#800000'; ctx.fillRect(this.x, this.y+10, this.w, 4); // Rings
+            // == TIME BOMB ==
+            // Flash color if triggered
+            let flash = (this.triggered && Math.floor(this.bombTimer/5)%2===0);
+            ctx.fillStyle= flash ? '#fff' : '#B22222'; 
+            ctx.fillRect(this.x, this.y, this.w, this.h); 
+            ctx.fillStyle='#800000'; ctx.fillRect(this.x, this.y+10, this.w, 4); 
             ctx.fillRect(this.x, this.y+20, this.w, 4);
-            ctx.fillStyle='#ff0'; ctx.font="bold 10px Arial"; ctx.fillText("TNT", this.x+5, this.y+18);
+            // Digital timer visual
+            if(this.triggered) {
+                ctx.fillStyle = '#f00'; ctx.font="bold 12px monospace"; 
+                ctx.fillText((this.bombTimer/60).toFixed(1), this.x+5, this.y-10);
+            } else {
+                ctx.fillStyle='#ff0'; ctx.font="bold 10px Arial"; ctx.fillText("TNT", this.x+5, this.y+18);
+            }
 
         } else if(this.t==='ufo') {
             if(this.beamTimer > 0) {
@@ -477,7 +561,7 @@ class Enemy {
             ctx.fillStyle='#f00'; ctx.fillRect(this.x+15,this.y-5,10,20); 
 
         } else {
-            // == BASIC CARS (Theme Dependent) ==
+            // == BASIC CARS ==
             this.drawCar(ctx, GAME.themes[GAME.themeIdx].id);
         }
         if(this.hp>1) { ctx.fillStyle='red'; ctx.fillRect(this.x,this.y-15,this.w*(this.hp/2),4); }
@@ -485,28 +569,23 @@ class Enemy {
 
     drawCar(ctx, theme) {
         if(theme === 'Earth' || theme === 'Neon') {
-            // Sedan / CyberCar
             let cMain = theme==='Earth' ? '#eec' : '#309';
             let cTop = theme==='Earth' ? '#cca' : '#60c';
-            ctx.fillStyle = cMain; ctx.fillRect(this.x, this.y+15, 40, 15); // Body
-            ctx.fillStyle = cTop;  ctx.fillRect(this.x+5, this.y, 25, 15); // Top
-            // Wheels
+            ctx.fillStyle = cMain; ctx.fillRect(this.x, this.y+15, 40, 15); 
+            ctx.fillStyle = cTop;  ctx.fillRect(this.x+5, this.y, 25, 15); 
             ctx.fillStyle = '#222'; 
             ctx.beginPath(); ctx.arc(this.x+10, this.y+30, 6, 0, Math.PI*2); ctx.fill();
             ctx.beginPath(); ctx.arc(this.x+30, this.y+30, 6, 0, Math.PI*2); ctx.fill();
             if(theme === 'Neon') {
-                ctx.fillStyle='#0ff'; ctx.fillRect(this.x, this.y+28, 40, 2); // underglow
+                ctx.fillStyle='#0ff'; ctx.fillRect(this.x, this.y+28, 40, 2); 
             }
         } else if (theme === 'Mars') {
-            // Rover
             ctx.fillStyle = '#842'; ctx.fillRect(this.x, this.y+5, 40, 15);
             ctx.fillStyle = '#111'; 
             ctx.beginPath(); ctx.arc(this.x+8, this.y+30, 8, 0, Math.PI*2); ctx.fill();
             ctx.beginPath(); ctx.arc(this.x+32, this.y+30, 8, 0, Math.PI*2); ctx.fill();
-            // Antenna
             ctx.strokeStyle='#aaa'; ctx.beginPath(); ctx.moveTo(this.x+10, this.y+5); ctx.lineTo(this.x+5, this.y-10); ctx.stroke();
         } else {
-            // Space Pod
             ctx.fillStyle = '#eee'; ctx.beginPath(); ctx.arc(this.x+20, this.y+20, 15, 0, Math.PI*2); ctx.fill();
             ctx.fillStyle = '#55f'; ctx.beginPath(); ctx.arc(this.x+20, this.y+20, 8, 0, Math.PI*2); ctx.fill();
             ctx.fillStyle = '#999'; ctx.fillRect(this.x+5, this.y+30, 5, 10); ctx.fillRect(this.x+30, this.y+30, 5, 10);
@@ -557,7 +636,7 @@ const GAME = {
         this.bgLayer1 = []; this.bgLayer2 = [];
         AudioSys.init();
         document.getElementById('menu-overlay').classList.add('hidden');
-        document.getElementById('mobile-link').classList.add('hidden'); // Hide mobile link
+        document.getElementById('mobile-link').classList.add('hidden'); 
         this.loop();
     },
 
@@ -578,11 +657,11 @@ const GAME = {
 
         if(this.frames % spawnRate === 0) {
             let r=Math.random();
-            if(r<0.15) this.ents.push(new Enemy('dragon')); // Now a Bird
+            if(r<0.15) this.ents.push(new Enemy('dragon')); 
             else if(r<0.3) this.ents.push(new Enemy('ufo'));
             else if(r<0.6) this.ents.push(new Enemy('traitor'));
             else if(r<0.7) this.ents.push(new Enemy('tnt'));
-            else this.ents.push(new Enemy('basic')); // Now a Car
+            else this.ents.push(new Enemy('basic')); 
         }
 
         this.player.update();
@@ -671,7 +750,7 @@ const GAME = {
     over: function() {
         this.active=false;
         document.getElementById('menu-overlay').classList.remove('hidden');
-        document.getElementById('mobile-link').classList.remove('hidden'); // Show mobile link again
+        document.getElementById('mobile-link').classList.remove('hidden'); 
         document.querySelector('h1').innerText="GAME OVER";
     }
 };
