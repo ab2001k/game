@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Omniverse: Director's Cut</title>
+<title>Omniverse: Final Cut</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎮</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Orbitron:wght@500;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
@@ -150,7 +150,7 @@
     <div id="menu-overlay">
         <div class="menu-panel">
             <h1>OMNIVERSE</h1>
-            <p style="color:var(--primary); font-size: 1.2rem; letter-spacing: 6px; font-weight:bold;">DIRECTOR'S CUT</p>
+            <p style="color:var(--primary); font-size: 1.2rem; letter-spacing: 6px; font-weight:bold;">FINAL CUT</p>
             <div class="lvl-select" id="lvl-container"></div>
             <button class="start-btn" onclick="GAME.start()">INITIALIZE SYSTEM</button>
             <div style="font-size:0.8rem; margin-top:10px; color:#666;">PRESS [SPACE] TO START</div>
@@ -173,16 +173,14 @@ const AudioSys = {
         if(!this.ctx) {
             try { this.ctx = new (window.AudioContext||window.webkitAudioContext)(); } catch(e){}
         }
-        // Restore Preference
         const saved = localStorage.getItem('omni_mute');
         if(saved !== null) this.muted = (saved === 'true');
         this.updateBtn();
-        
         if(this.ctx && this.ctx.state==='suspended') this.ctx.resume();
     },
     toggle: function() {
         this.muted = !this.muted;
-        localStorage.setItem('omni_mute', this.muted); // Save Preference
+        localStorage.setItem('omni_mute', this.muted);
         this.updateBtn();
     },
     updateBtn: function() {
@@ -301,26 +299,16 @@ class Player {
         this.jumpCount=0; this.reloadTimer=0;
     }
     update() {
-        // == SMOOTH PHYSICS CONTROL ==
-        // Acceleration instead of fixed speed
+        // == CONTROLS ==
         if(Input.keys.Left) { 
-            this.vx -= 0.8; 
-            this.walkCycle += 0.4; 
-        }
-        else if(Input.keys.Right) { 
-            this.vx += 0.8; 
-            this.walkCycle += 0.4; 
-        }
-        else { 
-            // Friction
-            this.vx *= 0.85; 
-            this.walkCycle = 0; 
+            this.vx -= 0.8; this.walkCycle += 0.4; 
+        } else if(Input.keys.Right) { 
+            this.vx += 0.8; this.walkCycle += 0.4; 
+        } else { 
+            this.vx *= 0.85; this.walkCycle = 0; 
         }
 
-        // Cap speed
         this.vx = Math.max(-9, Math.min(9, this.vx));
-        
-        // Apply position
         this.x = Math.max(0, Math.min(GAME.W-this.w, this.x+this.vx));
 
         if(Input.keys.Up && !this.grounded && this.fuel>0) {
@@ -329,7 +317,20 @@ class Player {
             if(GAME.frames%6===0) AudioSys.play('jet');
         } else if(this.grounded && this.fuel<100) this.fuel += 0.6;
 
-        this.vy += GAME.Gravity; this.y += this.vy;
+        // == GRAVITY & THEME PHYSICS ==
+        // Earth/Neon = 0.45 (Slower fall than before), Mars = 0.25 (Very slow)
+        let g = (GAME.themes[GAME.themeIdx].id === 'Mars') ? 0.25 : 0.45;
+        this.vy += g;
+        
+        this.y += this.vy;
+
+        // == CEILING BOUNDARY ==
+        if(this.y < 0) {
+            this.y = 0;
+            if(this.vy < 0) this.vy = 0; // Stop upward momentum
+        }
+
+        // == GROUND BOUNDARY ==
         if(this.y+this.h > GAME.GroundY) {
             this.y = GAME.GroundY - this.h; this.vy = 0; 
             this.grounded = true; this.jumpCount=0;
@@ -372,7 +373,6 @@ class Player {
         if(this.invuln>0 && Math.floor(GAME.frames/4)%2) return;
         let legOffset = Math.sin(this.walkCycle) * 10;
         
-        // Tilt effect based on speed
         ctx.save();
         ctx.translate(this.x+this.w/2, this.y+this.h/2);
         ctx.rotate(this.vx * 0.02);
@@ -402,48 +402,41 @@ class Enemy {
         this.yPhase = Math.random() * Math.PI;
         this.beamTimer = 0; 
         
-        // Time Bomb Properties
         this.bombTimer = 0; 
         this.triggered = false;
         
         if(t==='dragon') { this.w=50; this.h=40; this.hp=2; } 
         else if(t==='ufo') { this.w=60; this.h=30; this.hp=2; }
-        else if(t==='tnt') { this.y=GAME.GroundY-30; this.w=30; this.h=30; this.hp=2; } // TNT has HP but also self-destructs
+        else if(t==='tnt') { this.y=GAME.GroundY-30; this.w=30; this.h=30; this.hp=2; }
         else if(t==='traitor') { this.y=GAME.GroundY-60; this.h=50; this.hp=2; this.fired=false; }
         else this.y=GAME.GroundY-40; 
     }
     update() {
-        // Movement
         if(this.t !== 'ufo' || this.beamTimer <= 0) {
-            // TNT stays still if triggered? No, it's a game, keep it moving for difficulty, 
-            // but let's make TNT move slower than cars
             let spd = (this.t === 'tnt') ? (2 + GAME.level*0.5) : (3 + GAME.level * 0.8);
             this.x -= spd; 
         }
         this.tm++;
         
-        // == PROXIMITY MINE LOGIC (TNT) ==
+        // == TNT LOGIC ==
         if(this.t === 'tnt') {
              let centerX = this.x + this.w/2;
              let pCenterX = GAME.player.x + GAME.player.w/2;
              let dist = Math.abs(centerX - pCenterX);
              
-             // Trigger if close
              if(!this.triggered && dist < 150) {
                  this.triggered = true;
-                 this.bombTimer = 90; // ~1.5 Seconds (60fps)
+                 this.bombTimer = 90;
              }
-             
              if(this.triggered) {
                  this.bombTimer--;
-                 if(this.bombTimer % 15 === 0) AudioSys.play('beep'); // Warning beep
+                 if(this.bombTimer % 15 === 0) AudioSys.play('beep'); 
                  if(this.bombTimer <= 0) {
-                     this.hit(true); // Force explosion
+                     this.hit(true); 
                  }
              }
         }
 
-        // TRAITOR LOGIC
         if(this.t==='traitor' && this.x < -10 && !this.fired) {
             this.fired = true;
             GAME.ents.push(new BackMissile(this.y + 10));
@@ -471,18 +464,29 @@ class Enemy {
         
         if(this.x < -200) this.dead=true;
 
-        // Collision Body Damage
+        // == COLLISION & STOMP LOGIC ==
         if(checkRect(this, GAME.player)) {
-            if(this.t==='tnt') {
-                 this.hit(true); // Instant explode on touch
+            // Check for Stomp: Falling (vy>0) and above the enemy midpoint
+            let isStomp = GAME.player.vy > 0 && (GAME.player.y + GAME.player.h < this.y + this.h * 0.8);
+            
+            if(isStomp) {
+                // SUCCESSFUL STOMP
+                this.hit(); // Deal 1 damage
+                GAME.player.vy = -8; // Bounce player up
+                GAME.spawnPart(this.x+this.w/2, this.y, '#fff', 5, 10, 0.5);
+                AudioSys.play('jump');
             } else {
-                 GAME.player.hit(1);
-                 this.hit(true); // Enemy dies on impact
+                // NORMAL COLLISION
+                if(this.t==='tnt') {
+                     this.hit(true); // Force TNT explosion
+                } else {
+                     GAME.player.hit(1);
+                     this.hit(true); // Enemy destroys on impact
+                }
             }
         }
     }
     
-    // hit(forceKill) -> forceKill ensures explosion even if HP > 1
     hit(forceKill) {
         this.hp--; 
         if(this.hp > 0 && !forceKill) {
@@ -491,26 +495,20 @@ class Enemy {
             this.dead=true; 
             if(!forceKill) GAME.score += (this.t==='dragon'?500:100);
             
-            // EXPLOSION LOGIC
             if(this.t === 'traitor' || this.t === 'tnt') {
-                // Large visual explosion
                 GAME.spawnPart(this.x, this.y, '#ff4400', 10, 50, 0, 'shock');
                 for(let i=0; i<30; i++) GAME.spawnPart(this.x+15, this.y+15, Math.random()>.5?'#f00':'#ff0', 15, 50, 0.5);
                 GAME.shake = 20;
                 AudioSys.play('boom');
 
-                // AREA DAMAGE CHECK (Blast Radius)
                 let dx = (this.x+this.w/2) - (GAME.player.x+GAME.player.w/2);
                 let dy = (this.y+this.h/2) - (GAME.player.y+GAME.player.h/2);
                 let dist = Math.sqrt(dx*dx + dy*dy);
-                // If player is close to the explosion, take damage
                 if(dist < 180) {
                     GAME.player.hit(1);
                     GAME.txts.push(new FloatingText(GAME.player.x, GAME.player.y-50, "BLAST HIT!", "#f00"));
                 }
-
             } else {
-                // Normal death
                 GAME.spawnPart(this.x,this.y,this.t==='ufo'?'#0f0':'#fc0', 20, 20, 0.5);
                 AudioSys.play('boom');
             }
@@ -519,7 +517,6 @@ class Enemy {
     
     draw(ctx) {
         if(this.t==='dragon') {
-            // == BIRD ==
             let wingOffset = Math.sin(this.tm * 0.3) * 15;
             ctx.fillStyle = '#e55'; 
             ctx.beginPath(); ctx.ellipse(this.x+25, this.y+20, 20, 12, 0, 0, Math.PI*2); ctx.fill();
@@ -529,14 +526,11 @@ class Enemy {
             ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(this.x+15, this.y+15, 3, 0, Math.PI*2); ctx.fill();
 
         } else if(this.t==='tnt') {
-            // == TIME BOMB ==
-            // Flash color if triggered
             let flash = (this.triggered && Math.floor(this.bombTimer/5)%2===0);
             ctx.fillStyle= flash ? '#fff' : '#B22222'; 
             ctx.fillRect(this.x, this.y, this.w, this.h); 
             ctx.fillStyle='#800000'; ctx.fillRect(this.x, this.y+10, this.w, 4); 
             ctx.fillRect(this.x, this.y+20, this.w, 4);
-            // Digital timer visual
             if(this.triggered) {
                 ctx.fillStyle = '#f00'; ctx.font="bold 12px monospace"; 
                 ctx.fillText((this.bombTimer/60).toFixed(1), this.x+5, this.y-10);
@@ -561,7 +555,6 @@ class Enemy {
             ctx.fillStyle='#f00'; ctx.fillRect(this.x+15,this.y-5,10,20); 
 
         } else {
-            // == BASIC CARS ==
             this.drawCar(ctx, GAME.themes[GAME.themeIdx].id);
         }
         if(this.hp>1) { ctx.fillStyle='red'; ctx.fillRect(this.x,this.y-15,this.w*(this.hp/2),4); }
