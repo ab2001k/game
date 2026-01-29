@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Omniverse: Ultimate Edition</title>
+<title>Omniverse: Final Cut</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎮</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Orbitron:wght@500;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
     :root { 
@@ -144,8 +145,8 @@
             <div style="font-size:0.8rem; margin-top:10px; color:#666;">PRESS [SPACE] TO START</div>
             <div id="controls-hint">
                 <div>MOVE: <span class="key">←</span> <span class="key">→</span></div>
-                <div>JUMP: <span class="key">SPACE</span> (Tap)</div>
-                <div>JETPACK: <span class="key">SPACE</span> (Hold)</div>
+                <div>CROUCH: <span class="key">↓</span></div>
+                <div>JUMP: <span class="key">SPACE</span></div>
                 <div>SHOOT: <span class="key">F</span></div>
             </div>
         </div>
@@ -184,7 +185,6 @@ const AudioSys = {
         o.connect(g); g.connect(this.ctx.destination);
         
         if(t==='shoot'){ o.type='square'; o.frequency.setValueAtTime(800,now); o.frequency.exponentialRampToValueAtTime(100,now+0.1); g.gain.setValueAtTime(0.05,now); g.gain.linearRampToValueAtTime(0,now+0.1); o.start(now); o.stop(now+0.1); }
-        if(t==='laser'){ o.type='sawtooth'; o.frequency.setValueAtTime(1200,now); o.frequency.exponentialRampToValueAtTime(600,now+0.15); g.gain.setValueAtTime(0.05,now); g.gain.linearRampToValueAtTime(0,now+0.15); o.start(now); o.stop(now+0.15); }
         if(t==='jump'){ o.type='sine'; o.frequency.setValueAtTime(200,now); o.frequency.linearRampToValueAtTime(400,now+0.2); g.gain.setValueAtTime(0.1,now); g.gain.linearRampToValueAtTime(0,now+0.2); o.start(now); o.stop(now+0.2); }
         if(t==='jet'){ o.type='sawtooth'; o.frequency.setValueAtTime(50,now); g.gain.setValueAtTime(0.05,now); g.gain.linearRampToValueAtTime(0,now+0.1); o.start(now); o.stop(now+0.1); }
         if(t==='boom'){ o.type='sawtooth'; o.frequency.setValueAtTime(100,now); o.frequency.exponentialRampToValueAtTime(10,now+0.4); g.gain.setValueAtTime(0.2,now); g.gain.linearRampToValueAtTime(0,now+0.4); o.start(now); o.stop(now+0.4); }
@@ -195,7 +195,7 @@ const AudioSys = {
 };
 
 const Input = {
-    keys: {Left:false, Right:false, Up:false, Fire:false},
+    keys: {Left:false, Right:false, Up:false, Down: false, Fire:false},
     init: function() {
         window.addEventListener('keydown', e => this.handler(e.code, true));
         window.addEventListener('keyup', e => this.handler(e.code, false));
@@ -203,6 +203,7 @@ const Input = {
     handler: function(c, s) {
         if(c==='ArrowLeft') this.keys.Left = s;
         if(c==='ArrowRight') this.keys.Right = s;
+        if(c==='ArrowDown') this.keys.Down = s; // 2. CROUCH INPUT
         if(c==='Space' || c==='ArrowUp') {
             this.keys.Up = s;
             if(s && !this.prevUp) {
@@ -255,7 +256,7 @@ class HeartItem {
         if(this.x < -50) this.dead = true;
 
         if(checkRect(this, GAME.player)) {
-            if(GAME.player.hp < 5) { // Cap HP at 5
+            if(GAME.player.hp < 5) {
                 GAME.player.hp++;
                 GAME.score += 50;
                 AudioSys.play('heal');
@@ -270,8 +271,6 @@ class HeartItem {
         ctx.translate(this.x+15, this.y+15);
         let s = 1 + Math.sin(this.tm*2)*0.2;
         ctx.scale(s, s);
-        
-        // Draw Heart
         ctx.shadowBlur = 15; ctx.shadowColor = "#f06";
         ctx.fillStyle = "#ff0066";
         ctx.beginPath();
@@ -283,7 +282,6 @@ class HeartItem {
         ctx.bezierCurveTo(25, 5, 25, -10, 15, -10);
         ctx.bezierCurveTo(10, -10, 0, 5, 0, 5);
         ctx.fill();
-        
         ctx.restore();
     }
 }
@@ -292,7 +290,7 @@ class BackMissile {
     constructor(yPos) {
         this.x = -80; this.y = yPos; 
         this.w = 40; this.h = 12;
-        this.vx = 9 + (GAME.level*0.5); this.dead = false;
+        this.vx = 10; this.dead = false;
         GAME.txts.push(new FloatingText(150, this.y, "⚠ INCOMING!", "#f00"));
         AudioSys.play('shoot'); 
     }
@@ -334,27 +332,21 @@ class Bullet {
             ctx.fillStyle = '#f00'; ctx.fillRect(this.x,this.y,this.w,this.h); 
             return;
         }
-
-        // Theme based Weapon Visuals
         if(this.theme === 'Mars') {
-            // LASER
             ctx.fillStyle = '#f00'; ctx.shadowBlur = 10; ctx.shadowColor = '#f00';
             ctx.fillRect(this.x, this.y+1, 40, 4);
         } else if (this.theme === 'Neon') {
-            // BEAM
             ctx.fillStyle = '#0ff'; ctx.shadowBlur = 15; ctx.shadowColor = '#0ff';
             ctx.fillRect(this.x, this.y, 30, 8);
             ctx.fillStyle = '#fff'; ctx.fillRect(this.x+5, this.y+2, 20, 4);
         } else if (this.theme === 'Space') {
-            // PLASMA PULSE
             ctx.fillStyle = '#0f0'; ctx.shadowBlur = 10; ctx.shadowColor = '#0f0';
             ctx.beginPath(); ctx.arc(this.x+10, this.y+3, 8, 0, Math.PI*2); ctx.fill();
         } else {
-            // STANDARD BULLET (EARTH)
             ctx.fillStyle = '#ffcc00'; ctx.shadowBlur = 0;
             ctx.fillRect(this.x, this.y, this.w, this.h);
         }
-        ctx.shadowBlur = 0; // Reset
+        ctx.shadowBlur = 0; 
     }
 }
 
@@ -364,11 +356,19 @@ class Player {
         this.hp=3; this.fuel=100; this.ammo=12; 
         this.grounded=false; this.invuln=0; this.walkCycle=0;
         this.jumpCount=0; this.reloadTimer=0;
+        this.crouching = false;
     }
     update() {
-        if(Input.keys.Left) { this.vx -= 0.8; this.walkCycle += 0.4; } 
-        else if(Input.keys.Right) { this.vx += 0.8; this.walkCycle += 0.4; } 
-        else { this.vx *= 0.85; this.walkCycle = 0; }
+        // Crouch Logic
+        this.crouching = this.grounded && Input.keys.Down;
+
+        if(!this.crouching) {
+            if(Input.keys.Left) { this.vx -= 0.8; this.walkCycle += 0.4; } 
+            else if(Input.keys.Right) { this.vx += 0.8; this.walkCycle += 0.4; } 
+            else { this.vx *= 0.85; this.walkCycle = 0; }
+        } else {
+            this.vx *= 0.7; // Slower movement when crouching
+        }
 
         this.vx = Math.max(-9, Math.min(9, this.vx));
         this.x = Math.max(0, Math.min(GAME.W-this.w, this.x+this.vx));
@@ -408,7 +408,9 @@ class Player {
         if(this.ammo>0) {
             this.ammo--; 
             let t = GAME.themes[GAME.themeIdx].id;
-            GAME.bulls.push(new Bullet(this.x+40, this.y+15, 15, 'player', t));
+            // CROUCH FIRE: Lower Y position to hit TNT
+            let fireY = this.crouching ? this.y + 35 : this.y + 15;
+            GAME.bulls.push(new Bullet(this.x+40, fireY, 15, 'player', t));
             AudioSys.play('shoot'); 
             this.reloadTimer=0;
         }
@@ -434,33 +436,38 @@ class Player {
         ctx.rotate(this.vx * 0.02);
         ctx.translate(-(this.x+this.w/2), -(this.y+this.h/2));
 
-        // Legs
-        ctx.fillStyle = '#999';
-        if(this.grounded) {
-            ctx.fillRect(this.x+8 + legOffset, this.y+40, 8, 10); 
-            ctx.fillRect(this.x+24 - legOffset, this.y+40, 8, 10);
+        if(this.crouching) {
+            // SQUAT VISUAL
+            ctx.fillStyle = '#999';
+            ctx.fillRect(this.x+5, this.y+40, 30, 10); // Squat legs
+            let grad = ctx.createLinearGradient(this.x, this.y+15, this.x, this.y+this.h);
+            grad.addColorStop(0, '#fff'); grad.addColorStop(1, '#aaa');
+            ctx.fillStyle = grad; 
+            ctx.fillRect(this.x, this.y+15, this.w, 25); // Lowered body
+            ctx.fillStyle = '#333'; ctx.fillRect(this.x+15, this.y+23, 25, 12); // Visor
+            ctx.fillStyle = '#0ff'; ctx.fillRect(this.x+18, this.y+25, 20, 5); 
         } else {
-            ctx.fillRect(this.x+8, this.y+40, 8, 8); 
-            ctx.fillRect(this.x+24, this.y+45, 8, 8); // Jet pose
+            // NORMAL STANDING
+            ctx.fillStyle = '#999';
+            if(this.grounded) {
+                ctx.fillRect(this.x+8 + legOffset, this.y+40, 8, 10); 
+                ctx.fillRect(this.x+24 - legOffset, this.y+40, 8, 10);
+            } else {
+                ctx.fillRect(this.x+8, this.y+40, 8, 8); 
+                ctx.fillRect(this.x+24, this.y+45, 8, 8);
+            }
+            let grad = ctx.createLinearGradient(this.x, this.y, this.x, this.y+this.h);
+            grad.addColorStop(0, '#fff'); grad.addColorStop(1, '#aaa');
+            ctx.fillStyle = grad; 
+            ctx.fillRect(this.x, this.y, this.w, this.h-10);
+            ctx.fillStyle = '#333'; ctx.fillRect(this.x+15, this.y+8, 25, 12);
+            ctx.fillStyle = '#0ff'; ctx.fillRect(this.x+18, this.y+10, 20, 5); 
+            ctx.fillStyle = '#555'; ctx.fillRect(this.x-6, this.y+10, 6, 30);
+            ctx.fillStyle = this.fuel>20 ? '#0f0' : '#f00'; 
+            ctx.shadowBlur=5; ctx.shadowColor=ctx.fillStyle;
+            ctx.fillRect(this.x-6, this.y+15, 3, 5);
+            ctx.shadowBlur=0;
         }
-
-        // Body Gradient
-        let grad = ctx.createLinearGradient(this.x, this.y, this.x, this.y+this.h);
-        grad.addColorStop(0, '#fff'); grad.addColorStop(1, '#aaa');
-        ctx.fillStyle = grad; 
-        ctx.fillRect(this.x, this.y, this.w, this.h-10);
-
-        // Visor
-        ctx.fillStyle = '#333'; ctx.fillRect(this.x+15, this.y+8, 25, 12);
-        ctx.fillStyle = '#0ff'; ctx.fillRect(this.x+18, this.y+10, 20, 5); // Visor Glow
-
-        // Jetpack
-        ctx.fillStyle = '#555'; ctx.fillRect(this.x-6, this.y+10, 6, 30);
-        ctx.fillStyle = this.fuel>20 ? '#0f0' : '#f00'; 
-        ctx.shadowBlur=5; ctx.shadowColor=ctx.fillStyle;
-        ctx.fillRect(this.x-6, this.y+15, 3, 5);
-        ctx.shadowBlur=0;
-        
         ctx.restore();
     }
 }
@@ -483,27 +490,27 @@ class Enemy {
     }
     update() {
         if(this.t !== 'ufo' || this.beamTimer <= 0) {
-            let spd = (this.t === 'tnt') ? (2 + GAME.level*0.5) : (3 + GAME.level * 0.8);
-            this.x -= spd; 
+            if(this.t === 'traitor') {
+                // 3. TRAITOR MOVES WITH GROUND (STANDS STILL)
+                this.x -= 4; // Constant world speed
+            } else {
+                let spd = (this.t === 'tnt') ? (2 + GAME.level*0.5) : (3 + GAME.level * 0.8);
+                this.x -= spd; 
+            }
         }
         this.tm++;
         
-        // == TNT LOGIC ==
         if(this.t === 'tnt') {
              let centerX = this.x + this.w/2;
              let pCenterX = GAME.player.x + GAME.player.w/2;
              let dist = Math.abs(centerX - pCenterX);
-             
              if(!this.triggered && dist < 150) {
-                 this.triggered = true;
-                 this.bombTimer = 90;
+                 this.triggered = true; this.bombTimer = 90;
              }
              if(this.triggered) {
                  this.bombTimer--;
                  if(this.bombTimer % 15 === 0) AudioSys.play('beep'); 
-                 if(this.bombTimer <= 0) {
-                     this.hit(true); 
-                 }
+                 if(this.bombTimer <= 0) this.hit(true); 
              }
         }
 
@@ -513,9 +520,7 @@ class Enemy {
             GAME.spawnPart(this.x+40, this.y+10, '#fff', 5, 20, 0); 
         }
 
-        if(this.t==='dragon') {
-            this.y = this.yBase + Math.sin(this.tm * 0.05 + this.yPhase) * 60;
-        }
+        if(this.t==='dragon') this.y = this.yBase + Math.sin(this.tm * 0.05 + this.yPhase) * 60;
         
         if(this.t==='ufo') {
             this.y = this.yBase + Math.sin(this.tm * 0.04) * 80;
@@ -538,27 +543,23 @@ class Enemy {
         if(checkRect(this, GAME.player)) {
             let playerBottom = GAME.player.y + GAME.player.h;
             let enemyCenterY = this.y + this.h * 0.5;
-            
-            // STOMP CONDITION:
-            // 1. Player is falling (vy > 0)
-            // 2. Player is NOT touching TNT (TNT hurts always)
-            // 3. Player's bottom is roughly above the enemy's center (forgiving angle)
-            let isStomp = (GAME.player.vy > 0) && 
-                          (this.t !== 'tnt') && 
-                          (playerBottom < enemyCenterY + 15); // +15 forgiveness
+            let isStomp = (GAME.player.vy > 0) && (this.t !== 'tnt') && (playerBottom < enemyCenterY + 15);
             
             if(isStomp) {
-                this.hit(); 
-                GAME.player.vy = -8; // Bounce
-                GAME.spawnPart(this.x+this.w/2, this.y, '#fff', 5, 10, 0.5);
-                AudioSys.play('jump');
-            } else {
-                if(this.t==='tnt') {
-                     this.hit(true); // Force TNT explosion
+                // 3. TRAITOR STOMP LOGIC
+                if(this.t === 'traitor' && GAME.level >= 3) {
+                    // Level 3+ Traitor cannot be stomped safely
+                    this.hit(true); 
+                    GAME.player.hit(1);
                 } else {
-                     GAME.player.hit(1);
-                     this.hit(true); // Enemy destroys
+                    this.hit(); // Safe kill (Level 1-2 traitor or other enemies)
+                    GAME.player.vy = -8; 
+                    GAME.spawnPart(this.x+this.w/2, this.y, '#fff', 5, 10, 0.5);
+                    AudioSys.play('jump');
                 }
+            } else {
+                if(this.t==='tnt') this.hit(true); 
+                else { GAME.player.hit(1); this.hit(true); }
             }
         }
     }
@@ -577,10 +578,14 @@ class Enemy {
                 GAME.shake = 20;
                 AudioSys.play('boom');
 
+                // 4. BLAST SHOCKWAVE RADIUS LOGIC
+                let blastRadius = (GAME.level <= 2) ? 60 : 180; // Safe in Lvl 1-2, Dangerous in 3+
+
                 let dx = (this.x+this.w/2) - (GAME.player.x+GAME.player.w/2);
                 let dy = (this.y+this.h/2) - (GAME.player.y+GAME.player.h/2);
                 let dist = Math.sqrt(dx*dx + dy*dy);
-                if(dist < 180) {
+                
+                if(dist < blastRadius) {
                     GAME.player.hit(1);
                     GAME.txts.push(new FloatingText(GAME.player.x, GAME.player.y-50, "BLAST HIT!", "#f00"));
                 }
@@ -598,12 +603,9 @@ class Enemy {
             grad.addColorStop(0, '#e55'); grad.addColorStop(1, '#800');
             ctx.fillStyle = grad; 
             ctx.beginPath(); ctx.ellipse(this.x+25, this.y+20, 20, 12, 0, 0, Math.PI*2); ctx.fill();
-            // Beak
             ctx.fillStyle = '#ff0'; ctx.beginPath(); ctx.moveTo(this.x, this.y+20); ctx.lineTo(this.x+10, this.y+15); ctx.lineTo(this.x+10, this.y+25); ctx.fill();
-            // Wing
             ctx.fillStyle = '#a00'; 
             ctx.beginPath(); ctx.moveTo(this.x+25, this.y+15); ctx.lineTo(this.x+15, this.y-10+wingOffset); ctx.lineTo(this.x+40, this.y+15); ctx.fill();
-            // Eye
             ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(this.x+15, this.y+15, 3, 0, Math.PI*2); ctx.fill();
 
         } else if(this.t==='tnt') {
@@ -625,30 +627,23 @@ class Enemy {
                 ctx.fillStyle = `rgba(255,0,0,${alpha})`;
                 ctx.fillRect(this.x+15, this.y+20, 30, GAME.GroundY - this.y);
             }
-            // Dome
             ctx.fillStyle='#0f0'; ctx.beginPath(); ctx.arc(this.x+30,this.y+15,18,Math.PI,0); ctx.fill(); 
-            // Body
             let grad = ctx.createLinearGradient(this.x, this.y, this.x, this.y+30);
             grad.addColorStop(0, '#888'); grad.addColorStop(1, '#333');
             ctx.fillStyle=grad; 
             ctx.beginPath(); ctx.ellipse(this.x+30,this.y+15,35,10,0,0,Math.PI*2); ctx.fill();
-            // Lights
             ctx.fillStyle = (Math.floor(this.tm/10)%2===0) ? '#f00' : '#ff0';
             ctx.beginPath(); ctx.arc(this.x+10, this.y+15, 3, 0, Math.PI*2); ctx.fill();
             ctx.beginPath(); ctx.arc(this.x+50, this.y+15, 3, 0, Math.PI*2); ctx.fill();
 
         } else if(this.t==='traitor') {
-            // Robo Enemy
             let grad = ctx.createLinearGradient(this.x, this.y, this.x+this.w, this.y);
             grad.addColorStop(0, '#444'); grad.addColorStop(1, '#222');
             ctx.fillStyle=grad; ctx.fillRect(this.x,this.y+10,this.w,40); 
-            // Tracks
             ctx.fillStyle='#111'; ctx.fillRect(this.x-2,this.y+45,this.w+4,8); 
-            // Red Eye
             ctx.fillStyle='#f00'; ctx.shadowBlur=10; ctx.shadowColor='#f00';
             ctx.fillRect(this.x+10,this.y+15,20,5); 
             ctx.shadowBlur=0;
-            // Antenna
             ctx.fillStyle='#888'; ctx.fillRect(this.x+15,this.y-5,2,15);
 
         } else {
@@ -671,18 +666,15 @@ class Enemy {
                 ctx.shadowBlur=0;
             }
         } else if (theme === 'Mars') {
-            // Mars Rover
             ctx.fillStyle = '#842'; ctx.fillRect(this.x, this.y+5, 40, 15);
             ctx.fillStyle = '#111'; 
             ctx.beginPath(); ctx.arc(this.x+8, this.y+30, 8, 0, Math.PI*2); ctx.fill();
             ctx.beginPath(); ctx.arc(this.x+32, this.y+30, 8, 0, Math.PI*2); ctx.fill();
             ctx.strokeStyle='#aaa'; ctx.beginPath(); ctx.moveTo(this.x+10, this.y+5); ctx.lineTo(this.x+5, this.y-10); ctx.stroke();
         } else {
-            // Space Bubble
             let grad = ctx.createRadialGradient(this.x+20, this.y+20, 5, this.x+20, this.y+20, 20);
             grad.addColorStop(0, '#fff'); grad.addColorStop(1, '#888');
             ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(this.x+20, this.y+20, 15, 0, Math.PI*2); ctx.fill();
-            
             ctx.fillStyle = '#55f'; ctx.beginPath(); ctx.arc(this.x+20, this.y+20, 8, 0, Math.PI*2); ctx.fill();
             ctx.fillStyle = '#999'; ctx.fillRect(this.x+5, this.y+30, 5, 10); ctx.fillRect(this.x+30, this.y+30, 5, 10);
         }
@@ -747,21 +739,34 @@ const GAME = {
         if(this.frames % 60 === 0) this.bgLayer2.push({x:this.W, type:'tree'});
         if(this.frames % 1200 === 100) this.bgLayer1.push({x:this.W, type:'brand'});
 
+        // 5. DIFFICULTY: Speed and Quantity increase gradually
         let currentDifficulty = GAME.level + Math.floor(GAME.score/2000);
         let spawnRate = Math.max(20, 80 - (currentDifficulty * 8));
 
         // Enemy Spawn
         if(this.frames % spawnRate === 0) {
             let r=Math.random();
-            if(r<0.15) this.ents.push(new Enemy('dragon')); 
-            else if(r<0.3) this.ents.push(new Enemy('ufo'));
-            else if(r<0.6) this.ents.push(new Enemy('traitor'));
-            else if(r<0.7) this.ents.push(new Enemy('tnt'));
-            else this.ents.push(new Enemy('basic')); 
+            let newE;
+
+            // 5. LEVEL 5 RANDOMNESS
+            if(GAME.level === 5 && Math.random() < 0.3) {
+                 // Random burst or weird enemy
+                 if(Math.random() > 0.5) newE = new Enemy('ufo'); // More flying
+                 else newE = new Enemy('tnt');
+                 // Give them random Y offsets for chaos
+                 if(newE.t !== 'tnt') newE.y = 100 + Math.random() * 400; 
+            } else {
+                 if(r<0.15) newE = new Enemy('dragon'); 
+                 else if(r<0.3) newE = new Enemy('ufo');
+                 else if(r<0.6) newE = new Enemy('traitor');
+                 else if(r<0.7) newE = new Enemy('tnt');
+                 else newE = new Enemy('basic'); 
+            }
+            
+            if(newE) GAME.ents.push(newE);
         }
 
-        // Heart Spawn (Ample amount)
-        if(this.frames % 600 === 0) { // Approx every 10 seconds
+        if(this.frames % 600 === 0) { 
             this.ents.push(new HeartItem());
         }
 
@@ -770,7 +775,14 @@ const GAME = {
         this.bulls.forEach(b=>{
             b.update();
             if(b.o==='player') {
-                this.ents.forEach(e=>{ if(!b.dead && !e.dead && !(e instanceof HeartItem) && checkRect(b,e)) { b.dead=true; e.hit(); }});
+                this.ents.forEach(e=>{ 
+                    if(!b.dead && !e.dead && !(e instanceof HeartItem) && checkRect(b,e)) { 
+                        b.dead=true; 
+                        // PLASMA EXPLODES TNT
+                        if(e.t === 'tnt') e.hit(true); 
+                        else e.hit(); 
+                    }
+                });
                 this.ents.forEach(e=>{ if(!b.dead && e instanceof BackMissile && checkRect(b,e)) { b.dead=true; e.hit(); }});
             } else if (checkRect(b, GAME.player)) { b.dead=true; GAME.player.hit(1); }
         });
