@@ -20,13 +20,14 @@
         overflow: hidden; background: #050505;
         font-family: 'Orbitron', sans-serif;
         display: flex; justify-content: center; align-items: center; 
-        height: 100vh; width: 100vw;
+        min-height: 100vh; width: 100vw;
         user-select: none;
     }
 
     #game-container {
         position: relative; 
-        width: 100%; max-width: 1280px;
+        width: 100%; 
+        max-width: min(100vw, calc(100vh * 16/9));
         aspect-ratio: 16/9;
         background: #000; 
         box-shadow: 0 0 80px rgba(0, 243, 255, 0.15);
@@ -39,74 +40,294 @@
     }
 
     #ui-layer {
-        position: absolute; inset: 0; pointer-events: none; padding: 25px;
+        position: absolute; inset: 0; pointer-events: none; padding: clamp(10px, 2vw, 25px);
         display: flex; flex-direction: column; justify-content: space-between; z-index: 10;
     }
-    .hud-top { display: flex; justify-content: space-between; width: 100%; align-items: flex-start; }
+    .hud-top { display: flex; justify-content: space-between; width: 100%; align-items: flex-start; flex-wrap: wrap; gap: 10px; }
     
     .stat-panel {
         background: var(--hud-bg); 
         border: 1px solid rgba(255,255,255,0.15);
-        padding: 10px 20px; border-radius: 4px;
+        padding: clamp(8px, 1.5vw, 10px) clamp(12px, 2vw, 20px); 
+        border-radius: 4px;
         box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-        min-width: 220px;
+        min-width: clamp(150px, 20vw, 220px);
         pointer-events: auto;
     }
     
-    .hp-text { font-size: 2rem; letter-spacing: 5px; color: var(--danger); text-shadow: 0 0 15px var(--danger); }
-    .score-box { font-family: 'Share Tech Mono'; font-size: 1.2rem; color: #fff; margin-top: 5px; }
+    .hp-text { font-size: clamp(1.2rem, 3vw, 2rem); letter-spacing: clamp(2px, 0.5vw, 5px); color: var(--danger); text-shadow: 0 0 15px var(--danger); }
+    .score-box { font-family: 'Share Tech Mono'; font-size: clamp(0.9rem, 1.5vw, 1.2rem); color: #fff; margin-top: 5px; }
     .score-val { color: var(--primary); font-weight: 900; }
 
     .bar-group { margin-bottom: 8px; }
-    .bar-label { font-size: 0.8rem; color: #888; display: flex; justify-content: space-between; margin-bottom: 2px;}
+    .bar-label { font-size: clamp(0.65rem, 1.2vw, 0.8rem); color: #888; display: flex; justify-content: space-between; margin-bottom: 2px;}
     .bar-track { width: 100%; height: 8px; background: #222; border: 1px solid #444; border-radius: 2px; overflow: hidden; }
     .bar-fill { height: 100%; transition: width 0.1s linear; }
 
     #sound-btn {
         background: transparent; border: 1px solid #555; color: #fff;
-        cursor: pointer; padding: 5px 10px; font-size: 1.2rem;
+        cursor: pointer; padding: 5px 10px; font-size: clamp(1rem, 2vw, 1.2rem);
         margin-left: 10px; border-radius: 4px; transition: 0.2s;
     }
     #sound-btn:hover { background: #333; border-color: var(--primary); color: var(--primary); }
     .off-sound { opacity: 0.5; text-decoration: line-through; }
 
+    /* Mobile Controls */
+    #mobile-controls {
+        position: absolute;
+        bottom: clamp(15px, 3vw, 30px);
+        left: 0;
+        right: 0;
+        display: none;
+        justify-content: space-between;
+        padding: 0 clamp(10px, 2vw, 20px);
+        pointer-events: none;
+        z-index: 20;
+    }
+    #mobile-controls.active { display: flex; }
+    
+    .mobile-btn-group { display: flex; gap: clamp(8px, 1.5vw, 12px); pointer-events: auto; }
+    .mobile-btn {
+        width: clamp(50px, 10vw, 70px);
+        height: clamp(50px, 10vw, 70px);
+        background: rgba(0, 243, 255, 0.2);
+        border: 2px solid var(--primary);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: clamp(1.2rem, 3vw, 1.8rem);
+        color: var(--primary);
+        cursor: pointer;
+        user-select: none;
+        transition: all 0.1s;
+        box-shadow: 0 4px 15px rgba(0, 243, 255, 0.3);
+    }
+    .mobile-btn:active {
+        background: rgba(0, 243, 255, 0.4);
+        transform: scale(0.95);
+        box-shadow: 0 2px 8px rgba(0, 243, 255, 0.5);
+    }
+    .mobile-btn.pressed {
+        background: rgba(0, 243, 255, 0.5);
+        box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.5);
+    }
+
     #menu-overlay {
         position: absolute; inset: 0; background: rgba(0,0,0,0.95);
         display: flex; flex-direction: column; justify-content: center; align-items: center;
         z-index: 100; text-align: center; backdrop-filter: blur(10px);
+        padding: clamp(10px, 2vw, 20px);
+        overflow-y: auto;
     }
     h1 {
-        font-family: 'Black Ops One'; font-size: clamp(3rem, 6vw, 6rem); margin: 0;
+        font-family: 'Black Ops One'; 
+        font-size: clamp(2rem, 6vw, 6rem); 
+        margin: 0;
         background: linear-gradient(180deg, #fff, #555);
         -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        filter: drop-shadow(0 0 30px var(--primary)); letter-spacing: -2px;
+        filter: drop-shadow(0 0 30px var(--primary)); 
+        letter-spacing: -2px;
     }
     .menu-panel {
         border-top: 2px solid var(--primary); border-bottom: 2px solid var(--primary); 
-        padding: 40px; background: rgba(0, 20, 20, 0.8);
-        width: 100%; max-width: 700px;
+        padding: clamp(20px, 4vw, 40px); 
+        background: rgba(0, 20, 20, 0.8);
+        width: 100%; 
+        max-width: 700px;
     }
-    .lvl-select { display: flex; gap: 10px; justify-content: center; margin: 20px 0; flex-wrap: wrap; }
+    
+    .name-input-section {
+        margin: 20px 0;
+    }
+    .name-input-section input {
+        background: rgba(0, 50, 50, 0.5);
+        border: 1px solid var(--primary);
+        color: #fff;
+        padding: 12px 20px;
+        font-family: 'Orbitron';
+        font-size: clamp(0.9rem, 2vw, 1.1rem);
+        width: 100%;
+        max-width: 300px;
+        border-radius: 4px;
+        text-align: center;
+    }
+    .name-input-section input::placeholder {
+        color: #666;
+    }
+    
+    .lvl-select { display: flex; gap: clamp(6px, 1.5vw, 10px); justify-content: center; margin: 20px 0; flex-wrap: wrap; }
     .lvl-btn {
         background: rgba(0,0,0,0.5); border: 1px solid #555; color: #888;
-        padding: 10px 20px; cursor: pointer; font-family: 'Orbitron'; transition: 0.2s;
+        padding: clamp(8px, 1.5vw, 10px) clamp(12px, 2.5vw, 20px); 
+        cursor: pointer; 
+        font-family: 'Orbitron'; 
+        font-size: clamp(0.8rem, 1.5vw, 1rem);
+        transition: 0.2s;
     }
     .lvl-btn.active { background: var(--primary); color: #000; box-shadow: 0 0 15px var(--primary); transform: scale(1.1); border-color: #fff;}
 
     .start-btn {
-        display: inline-block; padding: 20px 60px; font-family: 'Orbitron'; font-size: 1.5rem; font-weight: 900;
+        display: inline-block; 
+        padding: clamp(12px, 2.5vw, 20px) clamp(30px, 6vw, 60px); 
+        font-family: 'Orbitron'; 
+        font-size: clamp(1rem, 2.5vw, 1.5rem); 
+        font-weight: 900;
         background: var(--danger); border: none; color: white; cursor: pointer; 
         clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px);
         transition: transform 0.1s, filter 0.1s; margin-top: 10px;
     }
     .start-btn:hover { transform: scale(1.05); filter: brightness(1.2); box-shadow: 0 0 30px var(--danger); }
+    
+    .settings-btn {
+        background: transparent;
+        border: 1px solid #555;
+        color: #888;
+        padding: clamp(8px, 1.5vw, 10px) clamp(16px, 3vw, 25px);
+        cursor: pointer;
+        font-family: 'Orbitron';
+        font-size: clamp(0.8rem, 1.5vw, 1rem);
+        margin-top: 15px;
+        transition: 0.2s;
+    }
+    .settings-btn:hover {
+        border-color: var(--primary);
+        color: var(--primary);
+    }
+    
     .hidden { display: none !important; }
 
     #controls-hint {
-        margin-top: 30px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
-        text-align: left; font-size: 1rem; color: #aaa;
+        margin-top: 30px; 
+        display: grid; 
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); 
+        gap: clamp(10px, 2vw, 20px);
+        text-align: left; 
+        font-size: clamp(0.8rem, 1.5vw, 1rem); 
+        color: #aaa;
     }
-    .key { color: #fff; border: 1px solid #666; padding: 2px 8px; border-radius: 4px; background: #222; font-family: monospace; }
+    .key { 
+        color: #fff; 
+        border: 1px solid #666; 
+        padding: 2px 8px; 
+        border-radius: 4px; 
+        background: #222; 
+        font-family: monospace; 
+    }
+    
+    /* Scoreboard */
+    #scoreboard {
+        margin-top: 20px;
+        background: rgba(0, 30, 30, 0.6);
+        padding: 15px;
+        border-radius: 8px;
+        max-height: 300px;
+        overflow-y: auto;
+    }
+    #scoreboard h3 {
+        color: var(--primary);
+        font-size: clamp(1rem, 2vw, 1.3rem);
+        margin: 0 0 10px 0;
+    }
+    .score-entry {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 12px;
+        margin: 5px 0;
+        background: rgba(0, 0, 0, 0.3);
+        border-left: 3px solid var(--primary);
+        font-size: clamp(0.8rem, 1.5vw, 0.95rem);
+    }
+    .score-entry.highlight {
+        background: rgba(0, 243, 255, 0.2);
+        border-left-color: var(--danger);
+        animation: pulse 2s ease-in-out;
+    }
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+    }
+    .score-name { color: #fff; flex: 1; }
+    .score-value { color: var(--warn); font-weight: bold; }
+    .score-rank { color: #666; margin-right: 10px; min-width: 30px; }
+    
+    /* Settings Panel */
+    #settings-panel {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 20, 30, 0.95);
+        border: 2px solid var(--primary);
+        padding: clamp(20px, 4vw, 30px);
+        border-radius: 8px;
+        min-width: min(90vw, 400px);
+        z-index: 150;
+    }
+    .settings-option {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 0;
+        border-bottom: 1px solid #333;
+        font-size: clamp(0.9rem, 1.8vw, 1.1rem);
+    }
+    .toggle-switch {
+        width: 50px;
+        height: 26px;
+        background: #555;
+        border-radius: 13px;
+        position: relative;
+        cursor: pointer;
+        transition: 0.3s;
+    }
+    .toggle-switch.active {
+        background: var(--primary);
+    }
+    .toggle-switch::after {
+        content: '';
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        background: #fff;
+        border-radius: 50%;
+        top: 3px;
+        left: 3px;
+        transition: 0.3s;
+    }
+    .toggle-switch.active::after {
+        left: 27px;
+    }
+    .close-settings {
+        margin-top: 20px;
+        width: 100%;
+        padding: 12px;
+        background: var(--danger);
+        border: none;
+        color: #fff;
+        font-family: 'Orbitron';
+        font-size: clamp(0.9rem, 1.8vw, 1.1rem);
+        cursor: pointer;
+        transition: 0.2s;
+    }
+    .close-settings:hover {
+        filter: brightness(1.2);
+    }
+    
+    /* Footer branding */
+    .footer-brand {
+        position: absolute;
+        bottom: 5px;
+        right: 10px;
+        font-size: clamp(0.6rem, 1.2vw, 0.75rem);
+        color: rgba(255, 255, 255, 0.3);
+        font-family: 'Share Tech Mono', monospace;
+        letter-spacing: 1px;
+    }
+    
+    @media (max-width: 768px) {
+        #controls-hint { font-size: 0.75rem; }
+    }
 </style>
 </head>
 <body>
@@ -136,20 +357,61 @@
         </div>
     </div>
 
+    <!-- Mobile Controls -->
+    <div id="mobile-controls">
+        <div class="mobile-btn-group">
+            <div class="mobile-btn" data-key="Left">←</div>
+            <div class="mobile-btn" data-key="Right">→</div>
+        </div>
+        <div class="mobile-btn-group">
+            <div class="mobile-btn" data-key="Down">↓</div>
+            <div class="mobile-btn" data-key="Fire">🔥</div>
+            <div class="mobile-btn" data-key="Up">↑</div>
+        </div>
+    </div>
+
     <div id="menu-overlay">
         <div class="menu-panel">
             <h1>OMNIVERSE</h1>
-            <p style="color:var(--primary); font-size: 1.2rem; letter-spacing: 6px; font-weight:bold;">ULTIMATE EDITION</p>
+            <p style="color:var(--primary); font-size: clamp(0.9rem, 2vw, 1.2rem); letter-spacing: clamp(3px, 1vw, 6px); font-weight:bold;">ULTIMATE EDITION</p>
+            
+            <div class="name-input-section">
+                <input type="text" id="player-name" placeholder="ENTER YOUR NAME" maxlength="20" />
+            </div>
+            
             <div class="lvl-select" id="lvl-container"></div>
             <button class="start-btn" onclick="GAME.start()">INITIALIZE SYSTEM</button>
-            <div style="font-size:0.8rem; margin-top:10px; color:#666;">PRESS [SPACE] TO START</div>
+            <div style="font-size:clamp(0.7rem, 1.2vw, 0.8rem); margin-top:10px; color:#666;">PRESS [SPACE] TO START</div>
+            
+            <button class="settings-btn" onclick="GAME.toggleSettings()">⚙ SETTINGS</button>
+            
             <div id="controls-hint">
                 <div>MOVE: <span class="key">←</span> <span class="key">→</span></div>
                 <div>CROUCH: <span class="key">↓</span></div>
                 <div>JUMP: <span class="key">SPACE</span></div>
                 <div>SHOOT: <span class="key">F</span></div>
             </div>
+            
+            <div id="scoreboard">
+                <h3>🏆 HALL OF FAME</h3>
+                <div id="score-list"></div>
+            </div>
         </div>
+        <div class="footer-brand">v2.0 | A.D.</div>
+    </div>
+    
+    <!-- Settings Panel -->
+    <div id="settings-panel" class="hidden">
+        <h3 style="color: var(--primary); margin-top: 0;">SETTINGS</h3>
+        <div class="settings-option">
+            <span>Mobile Controls</span>
+            <div class="toggle-switch" id="mobile-toggle" onclick="GAME.toggleMobileControls()"></div>
+        </div>
+        <div class="settings-option">
+            <span>Sound Effects</span>
+            <div class="toggle-switch active" id="sound-toggle" onclick="AudioSys.toggle(); GAME.updateSoundToggle()"></div>
+        </div>
+        <button class="close-settings" onclick="GAME.toggleSettings()">CLOSE</button>
     </div>
 </div>
 
@@ -199,11 +461,62 @@ const Input = {
     init: function() {
         window.addEventListener('keydown', e => this.handler(e.code, true));
         window.addEventListener('keyup', e => this.handler(e.code, false));
+        
+        // Mobile controls
+        document.querySelectorAll('.mobile-btn').forEach(btn => {
+            const key = btn.getAttribute('data-key');
+            
+            btn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                btn.classList.add('pressed');
+                this.mobileHandler(key, true);
+            });
+            
+            btn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                btn.classList.remove('pressed');
+                this.mobileHandler(key, false);
+            });
+            
+            btn.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                btn.classList.add('pressed');
+                this.mobileHandler(key, true);
+            });
+            
+            btn.addEventListener('mouseup', (e) => {
+                e.preventDefault();
+                btn.classList.remove('pressed');
+                this.mobileHandler(key, false);
+            });
+            
+            btn.addEventListener('mouseleave', (e) => {
+                btn.classList.remove('pressed');
+                this.mobileHandler(key, false);
+            });
+        });
+    },
+    mobileHandler: function(key, state) {
+        if(key === 'Left') this.keys.Left = state;
+        if(key === 'Right') this.keys.Right = state;
+        if(key === 'Down') this.keys.Down = state;
+        if(key === 'Up') {
+            this.keys.Up = state;
+            if(state && !this.prevUp) {
+                if(!GAME.active) GAME.start();
+                else GAME.player.tapJump();
+            }
+            this.prevUp = state;
+        }
+        if(key === 'Fire') {
+            if(state && !this.keys.Fire && GAME.active) GAME.player.shoot();
+            this.keys.Fire = state;
+        }
     },
     handler: function(c, s) {
         if(c==='ArrowLeft') this.keys.Left = s;
         if(c==='ArrowRight') this.keys.Right = s;
-        if(c==='ArrowDown') this.keys.Down = s; // 2. CROUCH INPUT
+        if(c==='ArrowDown') this.keys.Down = s;
         if(c==='Space' || c==='ArrowUp') {
             this.keys.Up = s;
             if(s && !this.prevUp) {
@@ -227,12 +540,12 @@ class Particle {
     }
     update() { 
         this.x+=this.vx; this.y+=this.vy; this.vy+=this.g; this.l--; 
-        if(this.type==='shock') this.size += 4; 
+        if(this.type==='shock') this.size += 3; 
     }
     draw(ctx) { 
         ctx.globalAlpha=this.l/this.ml; 
         if(this.type==='shock') {
-            ctx.strokeStyle = this.c; ctx.lineWidth = 3;
+            ctx.strokeStyle = this.c; ctx.lineWidth = 2;
             ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI*2); ctx.stroke();
         } else {
             ctx.fillStyle=this.c; ctx.fillRect(this.x,this.y,this.size,this.size); 
@@ -359,7 +672,6 @@ class Player {
         this.crouching = false;
     }
     update() {
-        // Crouch Logic
         this.crouching = this.grounded && Input.keys.Down;
 
         if(!this.crouching) {
@@ -367,7 +679,7 @@ class Player {
             else if(Input.keys.Right) { this.vx += 0.8; this.walkCycle += 0.4; } 
             else { this.vx *= 0.85; this.walkCycle = 0; }
         } else {
-            this.vx *= 0.7; // Slower movement when crouching
+            this.vx *= 0.7;
         }
 
         this.vx = Math.max(-9, Math.min(9, this.vx));
@@ -408,7 +720,6 @@ class Player {
         if(this.ammo>0) {
             this.ammo--; 
             let t = GAME.themes[GAME.themeIdx].id;
-            // CROUCH FIRE: Lower Y position to hit TNT
             let fireY = this.crouching ? this.y + 35 : this.y + 15;
             GAME.bulls.push(new Bullet(this.x+40, fireY, 15, 'player', t));
             AudioSys.play('shoot'); 
@@ -437,17 +748,15 @@ class Player {
         ctx.translate(-(this.x+this.w/2), -(this.y+this.h/2));
 
         if(this.crouching) {
-            // SQUAT VISUAL
             ctx.fillStyle = '#999';
-            ctx.fillRect(this.x+5, this.y+40, 30, 10); // Squat legs
+            ctx.fillRect(this.x+5, this.y+40, 30, 10);
             let grad = ctx.createLinearGradient(this.x, this.y+15, this.x, this.y+this.h);
             grad.addColorStop(0, '#fff'); grad.addColorStop(1, '#aaa');
             ctx.fillStyle = grad; 
-            ctx.fillRect(this.x, this.y+15, this.w, 25); // Lowered body
-            ctx.fillStyle = '#333'; ctx.fillRect(this.x+15, this.y+23, 25, 12); // Visor
+            ctx.fillRect(this.x, this.y+15, this.w, 25);
+            ctx.fillStyle = '#333'; ctx.fillRect(this.x+15, this.y+23, 25, 12);
             ctx.fillStyle = '#0ff'; ctx.fillRect(this.x+18, this.y+25, 20, 5); 
         } else {
-            // NORMAL STANDING
             ctx.fillStyle = '#999';
             if(this.grounded) {
                 ctx.fillRect(this.x+8 + legOffset, this.y+40, 8, 10); 
@@ -491,8 +800,7 @@ class Enemy {
     update() {
         if(this.t !== 'ufo' || this.beamTimer <= 0) {
             if(this.t === 'traitor') {
-                // 3. TRAITOR MOVES WITH GROUND (STANDS STILL)
-                this.x -= 4; // Constant world speed
+                this.x -= 4;
             } else {
                 let spd = (this.t === 'tnt') ? (2 + GAME.level*0.5) : (3 + GAME.level * 0.8);
                 this.x -= spd; 
@@ -539,20 +847,17 @@ class Enemy {
         
         if(this.x < -200) this.dead=true;
 
-        // == COLLISION & STOMP LOGIC ==
         if(checkRect(this, GAME.player)) {
             let playerBottom = GAME.player.y + GAME.player.h;
             let enemyCenterY = this.y + this.h * 0.5;
             let isStomp = (GAME.player.vy > 0) && (this.t !== 'tnt') && (playerBottom < enemyCenterY + 15);
             
             if(isStomp) {
-                // 3. TRAITOR STOMP LOGIC
                 if(this.t === 'traitor' && GAME.level >= 3) {
-                    // Level 3+ Traitor cannot be stomped safely
                     this.hit(true); 
                     GAME.player.hit(1);
                 } else {
-                    this.hit(); // Safe kill (Level 1-2 traitor or other enemies)
+                    this.hit();
                     GAME.player.vy = -8; 
                     GAME.spawnPart(this.x+this.w/2, this.y, '#fff', 5, 10, 0.5);
                     AudioSys.play('jump');
@@ -574,12 +879,11 @@ class Enemy {
             
             if(this.t === 'traitor' || this.t === 'tnt') {
                 GAME.spawnPart(this.x, this.y, '#ff4400', 10, 50, 0, 'shock');
-                for(let i=0; i<30; i++) GAME.spawnPart(this.x+15, this.y+15, Math.random()>.5?'#f00':'#ff0', 15, 50, 0.5);
-                GAME.shake = 20;
+                for(let i=0; i<25; i++) GAME.spawnPart(this.x+15, this.y+15, Math.random()>.5?'#f00':'#ff0', 12, 40, 0.5);
+                GAME.shake = 18;
                 AudioSys.play('boom');
 
-                // 4. BLAST SHOCKWAVE RADIUS LOGIC
-                let blastRadius = (GAME.level <= 2) ? 60 : 180; // Safe in Lvl 1-2, Dangerous in 3+
+                let blastRadius = (GAME.level <= 2) ? 70 : 160;
 
                 let dx = (this.x+this.w/2) - (GAME.player.x+GAME.player.w/2);
                 let dy = (this.y+this.h/2) - (GAME.player.y+GAME.player.h/2);
@@ -587,10 +891,10 @@ class Enemy {
                 
                 if(dist < blastRadius) {
                     GAME.player.hit(1);
-                    GAME.txts.push(new FloatingText(GAME.player.x, GAME.player.y-50, "BLAST HIT!", "#f00"));
+                    GAME.txts.push(new FloatingText(GAME.player.x, GAME.player.y-50, "BLAST!", "#f00"));
                 }
             } else {
-                GAME.spawnPart(this.x,this.y,this.t==='ufo'?'#0f0':'#fc0', 20, 20, 0.5);
+                GAME.spawnPart(this.x,this.y,this.t==='ufo'?'#0f0':'#fc0', 15, 20, 0.5);
                 AudioSys.play('boom');
             }
         }
@@ -623,7 +927,7 @@ class Enemy {
 
         } else if(this.t==='ufo') {
             if(this.beamTimer > 0) {
-                let alpha = this.beamTimer > 40 ? 0.2 : 0.7;
+                let alpha = this.beamTimer > 40 ? 0.2 : 0.6;
                 ctx.fillStyle = `rgba(255,0,0,${alpha})`;
                 ctx.fillRect(this.x+15, this.y+20, 30, GAME.GroundY - this.y);
             }
@@ -692,6 +996,8 @@ const GAME = {
     W: 1280, H: 720, GroundY: 640, Gravity: 0.6,
     active: false, frames: 0, score: 0, level: 3, shake: 0,
     player: null, ents: [], bulls: [], parts: [], txts: [], 
+    playerName: '',
+    mobileControlsEnabled: false,
     
     themes: [
         {id:'Earth', sky:['#87CEEB','#E0F7FA'], ground:'#228B22'},
@@ -712,22 +1018,41 @@ const GAME = {
             b.onclick = () => { GAME.level = i; document.querySelectorAll('.lvl-btn').forEach(x=>x.classList.remove('active')); b.classList.add('active'); };
             c.appendChild(b);
         }
+        
+        // Load saved name
+        const savedName = localStorage.getItem('omni_player_name');
+        if(savedName) document.getElementById('player-name').value = savedName;
+        
+        // Load mobile controls preference
+        const savedMobile = localStorage.getItem('omni_mobile_controls');
+        if(savedMobile === 'true') {
+            this.mobileControlsEnabled = true;
+            document.getElementById('mobile-toggle').classList.add('active');
+            document.getElementById('mobile-controls').classList.add('active');
+        }
+        
+        this.loadScoreboard();
         this.ctx.fillStyle = '#000'; this.ctx.fillRect(0,0,this.W,this.H);
         this.ctx.fillStyle = '#00f3ff'; this.ctx.font = '30px Orbitron';
         this.ctx.fillText("SYSTEM READY", 50, 50);
     },
 
     start: function() {
+        const nameInput = document.getElementById('player-name').value.trim();
+        this.playerName = nameInput || 'PLAYER';
+        localStorage.setItem('omni_player_name', this.playerName);
+        
         this.active = true; this.score = 0; this.frames = 0; 
         this.player = new Player();
         this.ents = []; this.bulls = []; this.parts = []; this.txts = [];
         this.bgLayer1 = []; this.bgLayer2 = [];
         AudioSys.init();
         document.getElementById('menu-overlay').classList.add('hidden');
+        document.querySelector('h1').innerText = "OMNIVERSE";
         this.loop();
     },
 
-    spawnPart: function(x,y,c,s,l,g,t) { for(let i=0;i<5;i++) this.parts.push(new Particle(x,y,c,s,l,g,t)); },
+    spawnPart: function(x,y,c,s,l,g,t) { for(let i=0;i<4;i++) this.parts.push(new Particle(x,y,c,s,l,g,t)); },
 
     update: function() {
         this.frames++;
@@ -739,21 +1064,16 @@ const GAME = {
         if(this.frames % 60 === 0) this.bgLayer2.push({x:this.W, type:'tree'});
         if(this.frames % 1200 === 100) this.bgLayer1.push({x:this.W, type:'brand'});
 
-        // 5. DIFFICULTY: Speed and Quantity increase gradually
         let currentDifficulty = GAME.level + Math.floor(GAME.score/2000);
         let spawnRate = Math.max(20, 80 - (currentDifficulty * 8));
 
-        // Enemy Spawn
         if(this.frames % spawnRate === 0) {
             let r=Math.random();
             let newE;
 
-            // 5. LEVEL 5 RANDOMNESS
             if(GAME.level === 5 && Math.random() < 0.3) {
-                 // Random burst or weird enemy
-                 if(Math.random() > 0.5) newE = new Enemy('ufo'); // More flying
+                 if(Math.random() > 0.5) newE = new Enemy('ufo');
                  else newE = new Enemy('tnt');
-                 // Give them random Y offsets for chaos
                  if(newE.t !== 'tnt') newE.y = 100 + Math.random() * 400; 
             } else {
                  if(r<0.15) newE = new Enemy('dragon'); 
@@ -778,7 +1098,6 @@ const GAME = {
                 this.ents.forEach(e=>{ 
                     if(!b.dead && !e.dead && !(e instanceof HeartItem) && checkRect(b,e)) { 
                         b.dead=true; 
-                        // PLASMA EXPLODES TNT
                         if(e.t === 'tnt') e.hit(true); 
                         else e.hit(); 
                     }
@@ -817,14 +1136,34 @@ const GAME = {
         });
 
         this.bgLayer2.forEach(b => {
-            this.ctx.fillStyle = "#5D4037"; this.ctx.fillRect(b.x+8, this.GroundY-30, 14, 30); 
-            this.ctx.fillStyle = "#2E7D32"; this.ctx.beginPath(); this.ctx.moveTo(b.x-15, this.GroundY-30); 
-            this.ctx.lineTo(b.x+15, this.GroundY-110); this.ctx.lineTo(b.x+45, this.GroundY-30); this.ctx.fill();
+            // Improved tree rendering
+            this.ctx.fillStyle = "#5D4037"; 
+            this.ctx.fillRect(b.x+12, this.GroundY-35, 6, 35);
+            
+            // Tree foliage - 3 layers
+            this.ctx.fillStyle = "#1B5E20";
+            this.ctx.beginPath();
+            this.ctx.moveTo(b.x, this.GroundY-25);
+            this.ctx.lineTo(b.x+15, this.GroundY-65);
+            this.ctx.lineTo(b.x+30, this.GroundY-25);
+            this.ctx.fill();
+            
+            this.ctx.fillStyle = "#2E7D32";
+            this.ctx.beginPath();
+            this.ctx.moveTo(b.x-5, this.GroundY-40);
+            this.ctx.lineTo(b.x+15, this.GroundY-85);
+            this.ctx.lineTo(b.x+35, this.GroundY-40);
+            this.ctx.fill();
+            
+            this.ctx.fillStyle = "#388E3C";
+            this.ctx.beginPath();
+            this.ctx.moveTo(b.x-8, this.GroundY-55);
+            this.ctx.lineTo(b.x+15, this.GroundY-100);
+            this.ctx.lineTo(b.x+38, this.GroundY-55);
+            this.ctx.fill();
         });
 
-        // Ground
         this.ctx.fillStyle = t.ground; this.ctx.fillRect(0, this.GroundY, this.W, this.H-this.GroundY);
-        // Ground Shine
         this.ctx.fillStyle = "rgba(255,255,255,0.05)"; this.ctx.fillRect(0, this.GroundY, this.W, 10);
 
         this.ents.forEach(e=>e.draw(this.ctx));
@@ -864,8 +1203,58 @@ const GAME = {
 
     over: function() {
         this.active=false;
+        this.saveScore();
         document.getElementById('menu-overlay').classList.remove('hidden');
         document.querySelector('h1').innerText="GAME OVER";
+    },
+    
+    saveScore: function() {
+        let scores = JSON.parse(localStorage.getItem('omni_scores') || '[]');
+        scores.push({
+            name: this.playerName,
+            score: this.score,
+            level: this.level,
+            date: new Date().toLocaleDateString()
+        });
+        scores.sort((a, b) => b.score - a.score);
+        scores = scores.slice(0, 10); // Keep top 10
+        localStorage.setItem('omni_scores', JSON.stringify(scores));
+        this.loadScoreboard(this.score);
+    },
+    
+    loadScoreboard: function(highlightScore) {
+        const scores = JSON.parse(localStorage.getItem('omni_scores') || '[]');
+        const list = document.getElementById('score-list');
+        
+        if(scores.length === 0) {
+            list.innerHTML = '<div style="color: #666; text-align: center; padding: 20px;">No scores yet. Be the first!</div>';
+            return;
+        }
+        
+        list.innerHTML = scores.map((s, i) => {
+            const isHighlight = highlightScore && s.score === highlightScore;
+            return `<div class="score-entry ${isHighlight ? 'highlight' : ''}">
+                <span class="score-rank">#${i+1}</span>
+                <span class="score-name">${s.name}</span>
+                <span class="score-value">${s.score}</span>
+            </div>`;
+        }).join('');
+    },
+    
+    toggleSettings: function() {
+        document.getElementById('settings-panel').classList.toggle('hidden');
+    },
+    
+    toggleMobileControls: function() {
+        this.mobileControlsEnabled = !this.mobileControlsEnabled;
+        localStorage.setItem('omni_mobile_controls', this.mobileControlsEnabled);
+        document.getElementById('mobile-toggle').classList.toggle('active');
+        document.getElementById('mobile-controls').classList.toggle('active');
+    },
+    
+    updateSoundToggle: function() {
+        const toggle = document.getElementById('sound-toggle');
+        toggle.classList.toggle('active', !AudioSys.muted);
     }
 };
 
